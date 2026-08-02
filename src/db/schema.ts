@@ -75,8 +75,9 @@ export const subtypes = pgTable(
       t.verticalId,
       sql`lower(${t.name})`,
     ),
-    // Target for the composite FK on `expenses`. Postgres requires a real
-    // UNIQUE constraint to reference — a unique index alone is not accepted.
+    // Target for the composite FK on `expenses` — a foreign key can only point
+    // at columns that are provably unique. Declared as a constraint rather than
+    // a bare unique index because it is self-documenting; Postgres takes either.
     unique("subtypes_id_vertical_id_key").on(t.id, t.verticalId),
   ],
 );
