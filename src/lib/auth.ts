@@ -11,7 +11,17 @@ function requireEnv(name: string): string {
   return value;
 }
 
-/** Constant-time string compare that doesn't leak length through early return. */
+/**
+ * Compares without leaking *which byte* differed. `timingSafeEqual` is
+ * constant-time only across equal-length inputs — it throws when the lengths
+ * differ — so the length check below is required, not incidental.
+ *
+ * The consequence is that a wrong-length guess is rejected fractionally faster,
+ * leaving the length of the configured value observable. That is acceptable
+ * here: the credentials are fixed server-side and there is no account to
+ * enumerate. Hiding length too would mean comparing digests of both inputs
+ * instead.
+ */
 function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
