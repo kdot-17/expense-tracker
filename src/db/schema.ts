@@ -93,10 +93,11 @@ export const expenses = pgTable(
     verticalId: integer("vertical_id").notNull(),
     subtypeId: integer("subtype_id").notNull(),
     amountPaise: integer("amount_paise").notNull(),
-    // `date`, not `timestamp`: an expense happens on a day. Storing an instant
-    // would push evening IST entries into the previous UTC day and misfile them
-    // in date-grouped totals. `mode: "string"` keeps it a plain "YYYY-MM-DD"
-    // and keeps JS `Date` timezone conversion out of the path.
+    // `date`, not `timestamp`: an expense happens on a day. IST is UTC+5:30, so
+    // storing an instant would push anything entered between midnight and
+    // 5:29am into the previous UTC day and misfile it in date-grouped totals.
+    // `mode: "string"` keeps it a plain "YYYY-MM-DD" and keeps JS `Date`
+    // timezone conversion out of the path entirely.
     spentOn: date("spent_on", { mode: "string" }).notNull(),
     note: text("note"),
     ...timestamps,

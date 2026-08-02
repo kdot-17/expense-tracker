@@ -155,6 +155,7 @@ variables needs the same treatment.
 - **`SUM(integer)` returns `bigint`, which the driver hands back as a string.**
   Cast it (`SUM(amount_paise)::int`) or convert explicitly. The same applies to
   any `numeric` column.
-- **Compute date ranges in `Asia/Kolkata`.** Server code runs in UTC, so deriving
-  "this month" from the server clock puts late-evening Indian expenses in the
-  wrong month.
+- **Compute date ranges in `Asia/Kolkata`.** Server code runs in UTC, and IST is
+  UTC+5:30, so anything between midnight and 5:29am IST is still the previous day
+  in UTC. Deriving "this month" from the server clock puts an expense entered at
+  00:30 IST on the 1st into the previous month.

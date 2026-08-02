@@ -38,7 +38,7 @@ around three decisions:
 | :--- | :--- |
 | 🪙 **Amounts stored as whole paise** | Floating point drifts. `0.1 + 0.2` has no business anywhere near a spend total. |
 | 🔒 **Categories validated by the database** | An expense can't be filed under a category pairing that doesn't exist — enforced in Postgres, not by hope. |
-| 🗓️ **Dates are days, not timestamps** | An expense logged at 11pm IST stays on *today*, instead of sliding into yesterday's total. |
+| 🗓️ **Dates are days, not timestamps** | An expense logged at 12:30am IST stays on *today*, instead of sliding into yesterday's total. |
 
 ---
 

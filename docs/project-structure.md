@@ -30,7 +30,8 @@ docs/                  This documentation
 - **`src/app/`** is the only directory the router looks at. A path becomes a real
   URL only when a `page.tsx` or `route.ts` exists — a folder alone does nothing.
   Files like `actions.ts`, `navbar.tsx`, and `login-form.tsx` sit inside route
-  folders as co-located code, not endpoints.
+  folders as co-located code, not endpoints. (Metadata files are the exception:
+  `favicon.ico` is served at `/favicon.ico` by filename convention alone.)
 - **`src/db/`** and **`src/lib/`** are outside the router entirely, so nothing in
   them can be reached by URL. The tables in `schema.ts` create no routes.
 - **`drizzle/`** holds generated SQL and is committed, so the schema is
