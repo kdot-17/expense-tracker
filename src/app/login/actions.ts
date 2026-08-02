@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { credentialsAreValid } from "@/lib/auth";
-import { createSession } from "@/lib/session";
+import { createSession, deleteSession } from "@/lib/session";
 
 export type LoginState = { error?: string };
 
@@ -29,4 +29,11 @@ export async function login(
   // Must stay outside any try/catch — redirect() signals by throwing, and a
   // catch block would swallow the navigation.
   redirect("/");
+}
+
+export async function logout(): Promise<void> {
+  // No session check needed: this only clears the caller's own cookie, so the
+  // worst a stray POST can do is sign out someone who is already signed out.
+  await deleteSession();
+  redirect("/login");
 }
