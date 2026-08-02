@@ -1,6 +1,6 @@
 import { verifySession } from "@/lib/dal";
 
-import { LogoutButton } from "./logout-button";
+import { Navbar } from "./navbar";
 
 export default async function Home() {
   // Redirects to /login if the session cookie is missing, expired, or forged.
@@ -8,9 +8,7 @@ export default async function Home() {
 
   return (
     <>
-      <header className="flex justify-end p-4">
-        <LogoutButton />
-      </header>
+      <Navbar />
       <main className="flex-1" />
     </>
   );
