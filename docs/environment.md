@@ -3,9 +3,10 @@
 All of these are **server-only**. None may be given a `NEXT_PUBLIC_` prefix —
 that would inline the value into the client bundle and publish it to the browser.
 
-Local values live in `.env.local`, which is gitignored. `.env.example` lists the
-credential variables — placeholder values for the email and password, and an
-empty `SESSION_SECRET` for you to generate.
+Local values live in `.env.local`, which is gitignored. `.env.example` lists
+every variable the app reads — placeholder values for the email and password, an
+empty `SESSION_SECRET` for you to generate, and an empty `DATABASE_URL` you fill
+from Vercel rather than inventing.
 
 ## Application variables
 
