@@ -1,5 +1,7 @@
 import { logout } from "@/app/login/actions";
+import { AddExpense } from "@/components/dashboard/add-expense";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { todayInIST } from "@/lib/period";
 
 const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
 
@@ -28,6 +30,11 @@ export function Masthead({
         <span className={`${MICRO} hidden sm:inline`}>{monthLabel} · {isClosed ? "closed" : "in progress"}</span>
 
         <div className="flex items-center gap-3">
+          {/* First in the group: the one control that creates data leads, and
+              the chrome controls trail. It opens the add-expense dialog —
+              labelled in words, not "+": see the theme toggle's own note on
+              ambiguous glyphs. */}
+          <AddExpense today={todayInIST()} />
           <ThemeToggle />
           {/* A plain form posting to a Server Action, so signing out still
               works if the client bundle never loads. */}

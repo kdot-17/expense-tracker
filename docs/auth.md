@@ -87,12 +87,25 @@ Clears the cookie and redirects to `/login`. It needs no session check, because
 it only clears the caller's own cookie — the worst a stray POST achieves is
 signing out someone already signed out.
 
+### `addExpense(prevState, formData)` — `src/app/actions.ts`
+
+The one write action, and the model for every future one: **its first line is
+`await verifySession()`**, before a single field is read. It validates, resolves
+the (vertical, subtype) names to ids, inserts, calls `revalidatePath("/")` and
+returns `{ saved: true }` — no redirect; the dialog that posted it closes over
+the board the same response re-rendered. Every failure returns
+`{ error, field, values }` for the form rather than throwing, and constraint
+violations are caught and rewritten into readable messages.
+
 ## Routes
 
 | Route | Behaviour |
 | --- | --- |
 | `/` | Requires a session via `verifySession()`; shows the navbar and main area |
 | `/login` | Sign-in form; redirects to `/` if already signed in |
+
+Adding an expense is not a route — it is a dialog on `/` posting to the
+`addExpense` action below.
 
 `/login` repeats the signed-in check that `proxy.ts` already performs, so the
 page stays correct if the proxy matcher ever changes.

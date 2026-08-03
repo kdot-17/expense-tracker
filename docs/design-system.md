@@ -42,8 +42,8 @@ band is in every one of these.
 | ![Light ledger](screenshots/light-ledger.jpg) | ![Dark ledger](screenshots/dark-ledger.jpg) |
 
 > Captured against temporary sample data, then reverted, and kept as the
-> **visual reference for what a populated board should look like**. The app
-> ships with no data wired, so the running page shows the same modules in their
+> **visual reference for what a populated board should look like**. The
+> database ships empty, so a fresh install shows the same modules in their
 > empty states — which is the one thing these cannot show you.
 >
 > The sample month is chosen to exercise the cases that have broken before, not
@@ -427,7 +427,27 @@ Grid children need `min-w-0`. A grid item defaults to `min-width: auto`, so a
 chart canvas or a wide table sets its track's floor at content width and pushes
 the whole page sideways.
 
-### Units
+### Overlays
+
+The app has exactly one overlay — the add-expense dialog — and one sanctioned
+way to build one: a **native `<dialog>` opened with `showModal()`**, nothing
+else. The reasons are the board itself:
+
+- **The top layer escapes the viewport lock for free.** The board wrapper is
+  `lg:overflow-hidden` and every tile clips its own body; a positioned div
+  would be fighting all of that, while the top layer is outside it by
+  definition. No z-index scale exists in this app, and a native dialog is why
+  one never needs to.
+- **Focus trapping, `Esc`, and inertness of the page behind come from the
+  platform.** No trap code to get wrong, nothing to remember when the form
+  grows a field.
+- **The backdrop is the ink token at 55%** (`backdrop:bg-ink/55`), translucent
+  on purpose: the board behind stays visible as the thing being added to.
+  No blur, no gradient — §2 rule 1 applies to a scrim too.
+- The dialog panel is the standard card: `border-rule bg-card` and 2px rules,
+  square corners, `@container` so the fluid heading steps resolve against it.
+
+A second overlay should be this same shape or should argue here first.
 
 A size is written in the unit that describes what it actually depends on:
 
@@ -477,33 +497,36 @@ the space reserved and the space drawn into cannot drift apart.
 src/app/globals.css              design tokens, both themes   ← start here
 src/app/layout.tsx               font vars + theme bootstrap, shell
 src/app/page.tsx                 the dashboard route (auth-gated) — see §7 rule 1
+src/app/actions.ts               the addExpense server action
 src/app/icon.svg                 the app mark — see "The app icon" below
 src/app/favicon.ico              the same mark, 16/32/48, for Safari and legacy
 src/app/apple-icon.png           the same mark, 180px, for iOS home screens
 src/components/dashboard/        the board itself, one file per module
-  dashboard.tsx                  which module sits in which tab and cell
-  tab-shell.tsx                  the view switcher — the only client component
+  dashboard.tsx                  which module sits where + the chart-prop maths
+  tab-shell.tsx                  the view switcher (client)
   tile.tsx                       the bordered box a module lives in
   kpi-strip.tsx                  the four figures above the tabs
+  add-expense.tsx                the Add expense control + dialog — see Overlays
   frames.ts                      plot frame shapes, shared with the empty state
 src/components/theme-toggle.tsx  the light/dark control
 src/lib/chart-setup.ts           Chart.js registration — see §5
 src/lib/fonts.ts                 the two faces — see §4
-src/lib/money.ts                 paise → rupee formatting — see §2 rule 6
+src/lib/money.ts                 paise: parse, format, compact — see §2 rule 6
 src/lib/palette.ts               the canvas mirror of the tokens
+src/lib/period.ts                IST calendar arithmetic, one place
 src/lib/taxonomy.ts              the ten verticals and their subtypes
-src/lib/money.ts                 paise: parse, format, compact
 src/lib/theme.ts                 theme store + bootstrap script
-src/lib/expenses.ts              data layer — currently empty, no store wired
+src/lib/expenses.ts              pure selectors over the fetched month
+src/lib/expenses-data.ts         getMonthData() — the database read, server-only
 scripts/palette-check.mjs        the validator
 ```
 
-`src/lib/expenses.ts` is the seam. `EXPENSES` is empty, so every selector
-returns the zero case and the board renders its full scaffold with empty states.
-Wiring a real source means changing that module and nothing else — keep the
-exported signatures stable, because the whole page reads through them. Its
-shapes already match `src/db/schema.ts`: integer paise, and both a vertical and
-a subtype on every row.
+`src/lib/expenses.ts` holds the selectors the board reads through — pure
+functions over the `MonthData` the page fetched via `src/lib/expenses-data.ts`.
+The unknown case is in the types: the previous-month fields are null when no
+prior month is on file, which is what keeps "nothing to compare" from decaying
+into ten zeroes. Shapes match `src/db/schema.ts`: integer paise, and both a
+vertical and a subtype on every row.
 
 `src/lib/taxonomy.ts` mirrors `drizzle/0001_seed_taxonomy.sql`. The migration is
 the authority; if they disagree, the migration is right. A subtype is always a

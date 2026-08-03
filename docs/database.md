@@ -316,7 +316,10 @@ aggregated in SQL, and an any-history check. A batch is one HTTP roundtrip on
 the neon-http driver instead of one per query, and it runs as a single
 non-interactive transaction, so the three reads are a consistent snapshot.
 
-Writes are server actions (see [conventions.md](conventions.md)).
+Writes are server actions (see [conventions.md](conventions.md)); creating an
+expense is `addExpense` in `src/app/actions.ts`, which resolves the
+(vertical, subtype) names to their id pair and lets the composite FK re-check
+the pairing on insert.
 
 **neon-http has no interactive transactions.** `db.batch()` — a fixed list of
 statements — is the only transactional shape available. A write that needs a

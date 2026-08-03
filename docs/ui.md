@@ -30,8 +30,9 @@ and how theming resolves.
 | `Ledger` | `src/components/dashboard/ledger.tsx` | Server |
 | `EmptyPlot` | `src/components/dashboard/empty.tsx` | Server |
 | `LoginForm` | `src/app/login/login-form.tsx` | Client |
+| `AddExpense` | `src/components/dashboard/add-expense.tsx` | Client |
 
-Only the four that need a canvas or browser state are Client Components. The
+Only the five that need a canvas or browser state are Client Components. The
 treemap looks interactive and is not — it is percentage-positioned divs, so it
 renders on the server and costs nothing on the client. `TabShell` is a Client
 Component but its *panels* are not: they are rendered on the server and passed
@@ -82,9 +83,12 @@ so pages can grow into the available space.
 
 The app chrome and the poster's masthead are the same object — a separate navbar
 above a design that already opens with a full-bleed dark band would be two
-headers stacked, so the theme toggle and sign-out live inside the band. Sign-out
-is a plain `<form>` posting to the `logout` server action: it needs no
-`"use client"` and works if the client bundle never loads.
+headers stacked, so the theme toggle, sign-out and the **Add expense** control
+all live inside the band. Sign-out is a plain `<form>` posting to the `logout`
+server action: it needs no `"use client"` and works if the client bundle never
+loads. Add expense leads the control group — the one control that creates data
+comes before the chrome — is written out in words rather than a "+" glyph, and
+opens the [`AddExpense`](#addexpense) dialog rather than navigating anywhere.
 
 The band's right-hand status reads `<month> · closed` or `<month> · in progress`
 from the `isClosed` prop the page derives, never from a literal. It said
@@ -119,11 +123,51 @@ so it is announced when it appears, and the password field points at it with
 `noValidate` so validation messaging stays consistent with the server's, rather
 than the browser showing its own first.
 
+### AddExpense
+
+The masthead's Add expense button and the dialog it opens — a native
+`<dialog>` via `showModal()`, the design system's one sanctioned overlay
+(see its §7 "Overlays" for why). Focus trapping, `Esc` and the backdrop are
+the platform's; the panel is the standard card; the form inside carries the
+same `useActionState` three-tuple and the same field, error and button
+treatment as the login form.
+
+On success the action returns `saved` instead of redirecting: it has already
+called `revalidatePath("/")`, so the same response carries a freshly rendered
+board, and the dialog closes over it — the new row standing in the ledger is
+the receipt, so the dialog needs no "saved" state of its own.
+
+Three decisions worth knowing before touching it:
+
+- **React 19 resets uncontrolled fields when a form action resolves.** The
+  action therefore echoes the submitted strings back in `state.values`, and
+  every `defaultValue` reads from it — remove that echo and a failed submit
+  wipes the reader's typing along with showing the error. The error state also
+  carries `field`, so `aria-describedby` points at the one field the message
+  names rather than being sprayed across all four.
+- **The picker is one grouped `<select>`** — ten `<optgroup>`s in
+  `VERTICAL_ORDER`, options in `SUBTYPES` order, value `subtypeKey`
+  (`"Food/Swiggy"`). The (vertical, name) pair stays atomic in a single
+  control with zero extra state, and the optgroup label carries the vertical
+  so option text stays the bare name. The server splits on the *first* slash.
+- **Native chrome is left native.** The select's chevron and popup and the
+  date input's picker are UA-drawn; they follow the `color-scheme` each theme
+  declares, and that is the extent of styling them. `appearance-none` would
+  cost the chevron or require a raw hex — a palette bug — to draw it back.
+
+The amount field is `type="text"` with `inputMode="decimal"` per
+[money.md](money.md), never `type="number"`. The date input submits
+`"YYYY-MM-DD"` by spec whatever the display locale, and defaults to today in
+IST, computed by the server that rendered the band. Opening the dialog needs
+JavaScript — the one exception to the forms-work-without-JS preference below,
+and the price of an overlay; the action itself still validates everything
+server-side.
+
 ## Conventions
 
 - Prefer Server Components. Reach for `"use client"` only when something needs
   browser state or event handlers — in practice that is the theme toggle, the
-  charts (Chart.js needs a canvas) and the login form.
+  charts (Chart.js needs a canvas), the tab shell and the two forms.
 - Prefer forms posting to server actions over click handlers, so behaviour
   survives without JavaScript.
 - Style with Tailwind utilities inline. Where a class list is long and shared —

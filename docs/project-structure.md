@@ -5,6 +5,7 @@ src/
   app/                 Routes only (App Router)
     layout.tsx         Root layout: html shell, fonts, theme bootstrap
     page.tsx           /        — the dashboard, auth-gated
+    actions.ts         addExpense server action
     login/
       page.tsx         /login
       login-form.tsx   The sign-in form (client component)
@@ -18,6 +19,7 @@ src/
       tile.tsx         The bordered box a module lives in
       kpi-strip.tsx    The four figures above the tabs
       masthead.tsx     The top band
+      add-expense.tsx  The Add expense control and its dialog (client)
       charts.tsx       The three Chart.js canvases (client)
       treemap.tsx      Verticals containing their subtypes, to scale
       squarify.ts      Squarified treemap layout, no dependencies
@@ -91,9 +93,9 @@ import { getDb } from "@/db";
 ## Server and client boundaries
 
 Almost everything is a Server Component. Only files that need browser state carry
-`"use client"`: `login-form.tsx` (`useActionState`), `theme-toggle.tsx`,
-`charts.tsx` (Chart.js needs a canvas) and `tab-shell.tsx` (which view is on
-screen). `TabShell`'s panels are rendered on the server and handed to it as
+`"use client"`: `login-form.tsx` and `add-expense.tsx` (`useActionState`, and
+the dialog's open state), `theme-toggle.tsx`, `charts.tsx` (Chart.js needs a
+canvas) and `tab-shell.tsx` (which view is on screen). `TabShell`'s panels are rendered on the server and handed to it as
 props, so the tabs cost no extra client markup.
 
 `src/db/index.ts`, `src/lib/dal.ts`, `src/lib/session.ts`, and
