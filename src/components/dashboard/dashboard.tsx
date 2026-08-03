@@ -166,7 +166,7 @@ export function Dashboard() {
           note="Area is amount. The ten categories nest inside the seven frozen groups: one colour is one group, and the wide gutters mark where a group ends. Packed by size, never sorted by colour."
         />
         <Treemap ratio={1.85} className="hidden md:block" />
-        <Treemap ratio={0.78} className="md:hidden" />
+        <Treemap ratio={0.78} className="md:hidden" compact />
       </section>
 
       {/* ------------------------------------------------ pie + vs. prior -- */}

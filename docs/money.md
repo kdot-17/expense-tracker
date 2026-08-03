@@ -92,7 +92,8 @@ of rounded figures that does not add up to its own rounded total.
 
 ### `formatPaiseCompact(paise: number): string`
 
-Axis ticks and calendar cells only — never a headline, and never a figure being
+For places with no room for a full figure: axis ticks, calendar cells, and
+treemap cells too narrow to hold one. Never a headline, and never a figure being
 reported as exact.
 
 | Input | Output |
@@ -105,6 +106,13 @@ reported as exact.
 This one is an approximation by design: `₹2.6k` is already rounded, so below
 ₹1,000 it prints whole rupees rather than claiming a precision the rest of the
 format does not have. Where the exact number matters, use `formatPaise`.
+
+**Abbreviate rather than let a number clip.** A `₹1,340.08` cut off at a cell
+edge reads as `₹1,340.0` — a wrong figure, not a truncated one. So the treemap
+uses this format in its smallest tier, and throughout on the narrow phone
+layout, where poster-scale type fills a cell only a couple of hundred pixels
+wide. Every one of those cells still carries the exact amount in its `title`,
+and the ledger carries all of them in full.
 
 ## Rules when handling amounts
 

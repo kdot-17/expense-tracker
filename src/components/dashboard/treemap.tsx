@@ -6,7 +6,7 @@ import {
   type Category,
 } from "@/lib/transactions";
 import { EmptyPlot } from "./empty";
-import { formatPaise } from "@/lib/money";
+import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import { slotOf } from "@/lib/palette";
 import { squarify, type Rect } from "./squarify";
 
@@ -64,16 +64,25 @@ function Cell({
   share,
   rect,
   frame,
+  compact,
 }: {
   category: Category;
   amountPaise: number;
   share: number;
   rect: Rect;
   frame: Rect;
+  compact: boolean;
 }) {
   const slot = slotOf(CATEGORY_TO_GROUP[category]);
   const ink = `var(--on-${slot})`;
   const tier = tierOf(share);
+
+  // A full `₹1,340.08` runs past the edge of a narrow cell and gets clipped
+  // mid-number, which reads as a wrong figure rather than a truncated one — so
+  // the tight cases abbreviate. The `title` below always carries the exact
+  // amount, and so does the ledger; this is the same split the calendar uses.
+  const amount =
+    compact || tier === "sm" ? formatPaiseCompact(amountPaise) : formatPaise(amountPaise);
 
   return (
     <div
@@ -107,7 +116,7 @@ function Cell({
           className={`leading-[0.85] tracking-[-0.04em] tabular-nums ${AMOUNT_SIZE[tier]}`}
           style={{ fontFamily: "var(--font-display)" }}
         >
-          {formatPaise(amountPaise)}
+          {amount}
         </span>
       </span>
     </div>
@@ -120,7 +129,19 @@ function Cell({
  * region of a single hue is a single group; the 6px black gutters mark where
  * one group stops and the next begins.
  */
-export function Treemap({ ratio, className }: { ratio: number; className?: string }) {
+export function Treemap({
+  ratio,
+  className,
+  // The narrow portrait treemap is the phone layout: its cells are a couple of
+  // hundred pixels across at most, and poster-scale type fills them. Exact
+  // figures do not fit there at any tier, so that instance abbreviates
+  // throughout rather than clipping the last digits off a number.
+  compact = false,
+}: {
+  ratio: number;
+  className?: string;
+  compact?: boolean;
+}) {
   const total = totalSpendPaise();
   const groups = byGroup();
   const categories = byCategory();
@@ -172,6 +193,7 @@ export function Treemap({ ratio, className }: { ratio: number; className?: strin
                 category={item.category}
                 amountPaise={item.amountPaise}
                 share={(item.amountPaise / total) * 100}
+                compact={compact}
                 rect={cell}
                 frame={{ x: 0, y: 0, w: rect.w, h: rect.h }}
               />
