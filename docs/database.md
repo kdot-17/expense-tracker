@@ -29,6 +29,75 @@ surface as silent hangs rather than errors.
 The module is marked `server-only`, so importing it from a Client Component is a
 build error rather than a leaked connection string.
 
+## Hierarchy
+
+Three levels. Verticals hold subtypes, subtypes hold expenses, and money only
+ever lands at the bottom.
+
+```
+LEVEL 1              LEVEL 2                LEVEL 3
+verticals            subtypes               expenses
+10 rows, permanent   ~47 rows, editable     grows forever
+"what kind of        "what kind of Food"    the actual money
+ spending"
+
+Food ────────────┬── Swiggy ────────────┬── ₹2,340   02 Aug   "lunch"
+                 │                      └── ₹880     28 Jul
+                 │
+                 ├── Dining Out ────────┬── ₹1,200   01 Aug   "dinner out"
+                 │                      └── ₹450     30 Jul
+                 │
+                 ├── Bistro ────────────── ₹380      31 Jul
+                 │
+                 └── Others ────────────── ₹60       03 Aug   "chai"
+```
+
+A vertical has many subtypes; a subtype belongs to exactly one vertical. A
+subtype has many expenses; an expense belongs to exactly one subtype.
+
+The part that is not a plain tree: an expense points at **both** its subtype and
+its vertical.
+
+```
+  verticals          ┌─────────────────────────────────┐
+                     │ id            1                 │
+                     │ name          "Food"            │
+                     └────────────────┬────────────────┘
+                                      │ vertical_id
+                                      │
+  subtypes           ┌────────────────▼────────────────┐
+                     │ id            3                 │
+                     │ vertical_id   1                 │
+                     │ name          "Swiggy"          │
+                     └────────────────┬────────────────┘
+                                      │
+                        (subtype_id, vertical_id)  ← ONE composite FK,
+                                      │               not two separate ones
+  expenses           ┌────────────────▼────────────────┐
+                     │ id            91                │
+                     │ vertical_id   1                 │
+                     │ subtype_id    3                 │
+                     │ amount_paise  120000   (₹1,200) │
+                     │ spent_on      2026-08-01        │
+                     └─────────────────────────────────┘
+```
+
+Storing `vertical_id` on the expense is what lets *"how much on Food this
+month"* run without touching `subtypes` at all. See
+[Constraints](#constraints-and-why-they-exist) for what stops the two columns
+disagreeing.
+
+Two rules fall out of this shape:
+
+- **Every expense goes through a subtype.** `expenses.subtype_id` is `NOT NULL`,
+  so nothing can be filed directly under a vertical, and a vertical with no
+  subtypes cannot take an expense at all. Any vertical added later needs at
+  least one subtype before it is usable — which is why `Other` is seeded with an
+  `Uncategorized` beneath it.
+- **Deleting works upward, never downward.** Every foreign key is `RESTRICT`, so
+  a subtype with expenses and a vertical with subtypes both refuse to be
+  deleted. Retiring either means setting `archived_at`.
+
 ## Tables
 
 ### `verticals`
@@ -78,6 +147,50 @@ to retire it. Delete handles typos; archive handles retirement.
 | `updated_at` | `timestamptz` | Defaults to now, maintained on update |
 
 Expenses are fully editable and deletable.
+
+## The seeded taxonomy
+
+Ten verticals and 47 subtypes are seeded by
+[`drizzle/0001_seed_taxonomy.sql`](../drizzle/0001_seed_taxonomy.sql). They are a
+starting point, not a fixed list — everything here is editable in the app.
+
+| Vertical | Subtypes |
+| --- | --- |
+| **Food** | Bistro, Dining Out, EatClub, Others, Swiggy, Swish, Zepto Café, Zomato |
+| **Convenience** | Blinkit, Instamart, Others, Zepto |
+| **Subscriptions** | Apps & Cloud, Electricity, Gas, Internet, Mobile, Music, Streaming, Water |
+| **Transport** | Metro, Others, Rapido, Uber |
+| **Health** | Diagnostics, Doctor, Fitness, Insurance, Medicines |
+| **Shopping** | Clothing, Electronics, Home & Kitchen, Personal Care |
+| **Leisure** | Books, Games, Hobbies, Movies & Events |
+| **People** | Donations, Family Support, Festivals, Gifts |
+| **Other** | Uncategorized |
+| **Loans** | Credit Card Dues, Education Loan, Home Loan, Personal Loan, Vehicle Loan |
+
+**Food and Convenience are filed by platform**, not by kind of purchase, because
+the question worth answering is which app the money goes to. The other verticals
+are filed by kind. Nothing in the schema cares, but it does mean the Food chart
+reads as a merchant breakdown while the Health chart reads as a category one.
+
+**The Food/Convenience line is what was bought, not which app it was bought in.**
+`Bistro` is Blinkit's prepared-food arm and sits under Food; a Blinkit grocery
+order sits under Convenience. Groceries have no subtype under Food at all —
+they belong to Convenience.
+
+**Loans records the full EMI, not just the interest.** Principal repayment does
+build equity, but a spend tracker measures cash out the door, and splitting each
+payment would mean re-deriving the amortisation split every month.
+
+**There is deliberately no Investments vertical.** SIPs and similar are transfers
+rather than spend — the money is still yours. There is no income or transfer
+concept in this schema and no flag marking a row as non-spend, so an investment
+logged as an expense would be indistinguishable from a dinner and would inflate
+every total and every chart. Adding one later means deciding how spend totals
+exclude it *before* inserting the vertical.
+
+`Subscriptions` mixes utilities with streaming, and `Health`, `Shopping`,
+`Leisure`, `People`, and `Loans` carry provisional subtypes that have not been
+reviewed against real spending yet.
 
 ## Constraints and why they exist
 
@@ -145,6 +258,33 @@ npm run db:studio     # browse the data
 Each script runs through `dotenv-cli`, because `drizzle-kit` does not read
 `.env.local` the way Next does. Any other standalone Node script that needs these
 variables needs the same treatment.
+
+### Data migrations
+
+Seed and backfill SQL goes in the same chain, written by hand into an empty
+migration:
+
+```bash
+npx drizzle-kit generate --custom --name seed_taxonomy
+```
+
+**Seed data is a migration here, not a standalone seed script.** A script would
+mean a database rebuilt from scratch comes up with correct tables and no
+categories, which contradicts the whole reason migration SQL is committed. It
+would also need `tsx` added purely to run one file.
+
+Two things any data migration in this schema has to respect:
+
+- **`id` is `GENERATED ALWAYS AS IDENTITY`**, so ids cannot be hardcoded, and
+  they cannot be carried from one insert to the next. Child rows resolve their
+  parent by name instead — see the `JOIN (VALUES ...)` in
+  [`0001_seed_taxonomy.sql`](../drizzle/0001_seed_taxonomy.sql).
+- **`ORDER BY` the select that feeds an insert.** Identity values are drawn in
+  the order rows are produced, so without one the planner decides and the same
+  file hands out different ids in different databases.
+
+`ON CONFLICT DO NOTHING` needs no conflict target to catch the `lower(name)`
+unique indexes, which is what leaves the seed safe to re-apply.
 
 ## Querying conventions
 
