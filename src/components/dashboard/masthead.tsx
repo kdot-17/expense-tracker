@@ -2,7 +2,7 @@ import { logout } from "@/app/login/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MONTH_LABEL } from "@/lib/transactions";
 
-const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
+const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
 
 /**
  * The app chrome and the poster's masthead are the same object. A separate
@@ -12,7 +12,7 @@ const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
 export function Masthead() {
   return (
     <header className="bg-bar text-on-bar w-full">
-      <div className="mx-auto flex w-full max-w-[1360px] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-2 sm:px-6 lg:px-10">
+      <div className="mx-auto flex w-full max-w-[85rem] flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-2 sm:px-6 lg:px-10">
         <span className={MICRO}>Expense tracker — monthly review</span>
         <span className={`${MICRO} hidden sm:inline`}>{MONTH_LABEL} · closed</span>
 
@@ -38,7 +38,7 @@ export function Masthead() {
 export function Colophon() {
   return (
     <footer className="bg-bar text-on-bar w-full">
-      <div className="mx-auto w-full max-w-[1360px] px-4 py-3 sm:px-6 lg:px-10">
+      <div className="mx-auto w-full max-w-[85rem] px-4 py-3 sm:px-6 lg:px-10">
         <span className={MICRO}>All figures in INR</span>
       </div>
     </footer>

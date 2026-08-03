@@ -28,13 +28,13 @@ export function CalendarBlock() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-7 border-2 border-rule">
+      <div className="border-rule @container grid grid-cols-7 border-2">
         {WEEKDAYS_SHORT.map((day, i) => (
           <div
             key={day}
             // Tracking is tightened from the usual 0.2em: seven three-letter
-            // labels have to survive a 7-column grid at 360px.
-            className="bg-rule text-page py-1.5 text-center text-[10px] font-semibold tracking-[0.06em] uppercase sm:text-[11px] sm:tracking-[0.1em]"
+            // labels have to survive a 7-column grid on the narrowest phone.
+            className="bg-rule text-page text-cell-head py-1.5 text-center font-semibold tracking-[0.06em] uppercase sm:tracking-[0.1em]"
           >
             <abbr title={WEEKDAYS_LONG[i]} className="no-underline">
               {day}
@@ -78,13 +78,13 @@ export function CalendarBlock() {
               }}
             >
               <span
-                className="text-[11px] leading-none sm:text-[13px]"
+                className="text-cell-day leading-none"
                 style={{ fontFamily: "var(--font-display)" }}
               >
                 {day}
               </span>
               <span
-                className="text-[8px] leading-none font-semibold whitespace-nowrap tabular-nums sm:text-[10px]"
+                className="text-cell-figure leading-none font-semibold whitespace-nowrap tabular-nums"
                 style={{
                   background: quiet ? "var(--card)" : undefined,
                   padding: quiet ? "1px 2px" : undefined,
@@ -98,18 +98,18 @@ export function CalendarBlock() {
       </div>
 
       {/* Median per weekday — the reason the blanks are not a coincidence. */}
-      <div className="grid grid-cols-7 border-2 border-rule">
+      <div className="border-rule @container grid grid-cols-7 border-2">
         {medians.map((value, i) => (
           <div
             key={WEEKDAYS_LONG[i]}
             className="overflow-hidden px-1 py-1.5 text-center whitespace-nowrap"
             style={{ outline: "2px solid var(--rule)", outlineOffset: "-1px" }}
           >
-            <span className="text-muted block text-[8px] font-semibold tracking-[0.06em] uppercase">
+            <span className="text-muted text-cell-figure block font-semibold tracking-[0.06em] uppercase">
               {WEEKDAYS_SHORT[i]}
             </span>
             <span
-              className="block text-[11px] tabular-nums sm:text-[13px]"
+              className="text-cell-day block tabular-nums"
               style={{ fontFamily: "var(--font-display)" }}
             >
               {known ? formatPaiseCompact(value) : "—"}
@@ -117,7 +117,7 @@ export function CalendarBlock() {
           </div>
         ))}
       </div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+      <p className="text-micro font-semibold uppercase tracking-[0.18em] text-muted">
         Median spend, by weekday
       </p>
 
@@ -126,7 +126,7 @@ export function CalendarBlock() {
           the reader cannot see. */}
       {known ? (
         <div className="border-rule flex flex-wrap items-center gap-x-4 gap-y-2 border-t-2 pt-3">
-          <span className="text-muted text-[10px] font-semibold tracking-[0.18em] uppercase">
+          <span className="text-muted text-micro font-semibold tracking-[0.18em] uppercase">
             Per day
           </span>
           {RAMP_LABELS.map((label, i) => (
@@ -136,7 +136,7 @@ export function CalendarBlock() {
                 className="border-rule size-3.5 border-2"
                 style={{ background: `var(--ramp-${i})` }}
               />
-              <span className="text-ink-2 text-[11px] tabular-nums">{label}</span>
+              <span className="text-ink-2 text-tick tabular-nums">{label}</span>
             </span>
           ))}
           <span className="flex items-center gap-1.5">
@@ -145,7 +145,7 @@ export function CalendarBlock() {
               className="border-rule size-3.5 border-2"
               style={{ backgroundImage: QUIET_FILL }}
             />
-            <span className="text-ink-2 text-[11px]">nil</span>
+            <span className="text-ink-2 text-tick">nil</span>
           </span>
         </div>
       ) : null}

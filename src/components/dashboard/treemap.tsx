@@ -33,25 +33,38 @@ function tierOf(share: number): Tier {
   return "sm";
 }
 
+/**
+ * Cell type, sized in `cqi` against the treemap's own frame.
+ *
+ * This is the one place where container sizing buys something a breakpoint
+ * cannot. Every cell is a *percentage* of the frame, so if the type is also a
+ * percentage of the frame, then the ratio of a label's width to its cell's
+ * width does not change with size at all. Get a label to fit once and it fits
+ * at every width — which is not true of `md:`/`lg:` steps, where the frame
+ * grows continuously between breakpoints while the type jumps at them.
+ *
+ * The rem bounds are the old mobile and desktop steps, so the ends are
+ * unchanged and only the middle stops stepping.
+ */
 const LABEL_SIZE: Record<Tier, string> = {
-  xl: "text-[1.75rem] md:text-[2.75rem] lg:text-[3.6rem]",
-  lg: "text-[1.15rem] md:text-[1.6rem] lg:text-[2.1rem]",
-  md: "text-[0.85rem] md:text-[1.05rem] lg:text-[1.4rem]",
-  sm: "text-[0.65rem] md:text-[0.8rem] lg:text-[0.95rem]",
+  xl: "text-[clamp(1.75rem,4.5cqi,3.6rem)]",
+  lg: "text-[clamp(1.15rem,2.63cqi,2.1rem)]",
+  md: "text-[clamp(0.85rem,1.76cqi,1.4rem)]",
+  sm: "text-[clamp(0.65rem,1.19cqi,0.95rem)]",
 };
 
 const AMOUNT_SIZE: Record<Tier, string> = {
-  xl: "text-[2.2rem] md:text-[3.4rem] lg:text-[4.8rem]",
-  lg: "text-[1.5rem] md:text-[2.1rem] lg:text-[2.9rem]",
-  md: "text-[1.05rem] md:text-[1.35rem] lg:text-[1.8rem]",
-  sm: "text-[0.8rem] md:text-[1rem] lg:text-[1.25rem]",
+  xl: "text-[clamp(2.2rem,6cqi,4.8rem)]",
+  lg: "text-[clamp(1.5rem,3.64cqi,2.9rem)]",
+  md: "text-[clamp(1.05rem,2.26cqi,1.8rem)]",
+  sm: "text-[clamp(0.8rem,1.57cqi,1.25rem)]",
 };
 
 const PAD: Record<Tier, string> = {
-  xl: "p-3 md:p-5 lg:p-7",
-  lg: "p-2.5 md:p-4 lg:p-5",
-  md: "p-2 md:p-3",
-  sm: "p-1 md:p-2",
+  xl: "p-[clamp(0.75rem,2.19cqi,1.75rem)]",
+  lg: "p-[clamp(0.625rem,1.57cqi,1.25rem)]",
+  md: "p-[clamp(0.5rem,0.94cqi,0.75rem)]",
+  sm: "p-[clamp(0.25rem,0.63cqi,0.5rem)]",
 };
 
 function pct(value: number, whole: number): string {
@@ -164,7 +177,7 @@ export function Treemap({
 
   return (
     <div
-      className={`relative w-full border-2 border-rule bg-rule ${className ?? ""}`}
+      className={`border-rule bg-rule @container relative w-full border-2 ${className ?? ""}`}
       style={{ aspectRatio: String(ratio) }}
     >
       {placedGroups.map(({ item: group, rect }) => {

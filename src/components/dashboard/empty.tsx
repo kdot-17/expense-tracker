@@ -5,7 +5,11 @@
  */
 export function EmptyPlot({
   label = "No transactions yet",
-  className = "h-[280px] sm:h-[340px]",
+  // Defaults to the line plot's proportions so an empty frame occupies exactly
+  // the space its chart will. Callers pass the shape of the plot they stand in
+  // for — an aspect ratio, never a fixed height, so the placeholder reflows
+  // with its column like the canvas does.
+  className = "aspect-[6/5] sm:aspect-[16/9] lg:aspect-[11/5]",
 }: {
   label?: string;
   className?: string;
@@ -14,7 +18,7 @@ export function EmptyPlot({
     <div
       className={`border-rule bg-card flex w-full items-center justify-center border-2 ${className}`}
     >
-      <p className="text-muted text-[10px] font-semibold tracking-[0.2em] uppercase">
+      <p className="text-muted text-micro font-semibold tracking-[0.2em] uppercase">
         {label}
       </p>
     </div>

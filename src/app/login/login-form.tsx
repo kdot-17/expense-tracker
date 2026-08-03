@@ -20,7 +20,7 @@ export function LoginForm() {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="email"
-          className="text-[10px] font-semibold tracking-[0.2em] uppercase"
+          className="text-micro font-semibold tracking-[0.2em] uppercase"
         >
           Email
         </label>
@@ -38,7 +38,7 @@ export function LoginForm() {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="password"
-          className="text-[10px] font-semibold tracking-[0.2em] uppercase"
+          className="text-micro font-semibold tracking-[0.2em] uppercase"
         >
           Password
         </label>
@@ -73,7 +73,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="bg-rule text-page mt-1 px-3 py-2.5 text-[11px] font-semibold tracking-[0.2em] uppercase disabled:opacity-60"
+        className="bg-rule text-page mt-1 px-3 py-2.5 text-tick font-semibold tracking-[0.2em] uppercase disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

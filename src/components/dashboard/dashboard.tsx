@@ -12,7 +12,7 @@ import {
   stats,
 } from "@/lib/transactions";
 
-const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
+const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
 const DASH = "—";
 
 function SectionHead({
@@ -25,15 +25,18 @@ function SectionHead({
   note?: string;
 }) {
   return (
-    <div className="border-rule flex flex-col gap-2 border-b-2 pb-3">
+    // `@container` here rather than on the page: these heads sit in columns of
+    // three different widths (full bleed, 7/12, 5/12), and each should size to
+    // the one it is actually in.
+    <div className="border-rule @container flex flex-col gap-2 border-b-2 pb-3">
       <div className="flex items-baseline gap-3">
         <span className={`${MICRO} text-muted shrink-0 tabular-nums`}>{index}</span>
-        <h2 className="font-display text-[clamp(1.35rem,3.4vw,2.35rem)] leading-[0.9] tracking-[-0.01em] uppercase">
+        <h2 className="font-display text-section leading-[0.9] tracking-[-0.01em] uppercase">
           {title}
         </h2>
       </div>
       {note ? (
-        <p className="text-ink-2 max-w-[74ch] text-[13px] leading-relaxed">{note}</p>
+        <p className="text-ink-2 text-note max-w-[74ch] leading-relaxed">{note}</p>
       ) : null}
     </div>
   );
@@ -73,28 +76,32 @@ export function Dashboard() {
   ];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-10 px-4 py-8 sm:px-6 lg:gap-14 lg:px-10 lg:py-12">
+    <main className="mx-auto flex w-full max-w-[85rem] flex-1 flex-col gap-10 px-4 py-8 sm:px-6 lg:gap-14 lg:px-10 lg:py-12">
       {/* ------------------------------------------------------- headline -- */}
       <header className="border-rule bg-card grid grid-cols-1 border-2 lg:grid-cols-12">
-        <div className="border-rule border-b-2 p-5 sm:p-8 lg:col-span-7 lg:border-r-2 lg:border-b-0">
+        <div className="border-rule @container border-b-2 p-5 sm:p-8 lg:col-span-7 lg:border-r-2 lg:border-b-0">
           <p className={`${MICRO} text-muted`}>{MONTH_LABEL} · one account</p>
-          <h1 className="font-display mt-4 text-[clamp(2.6rem,9.2vw,6.4rem)] leading-[0.82] tracking-[-0.02em] uppercase">
+          <h1 className="font-display text-masthead mt-4 leading-[0.82] tracking-[-0.02em] uppercase">
             Where the
             <br />
             money went
           </h1>
-          <p className="text-ink-2 mt-5 max-w-[52ch] text-[14px] leading-relaxed sm:text-[15px]">
+          <p className="text-ink-2 text-body sm:text-lede mt-5 max-w-[52ch] leading-relaxed">
             Every debit for the month, grouped seven ways and shown to scale.
           </p>
         </div>
 
+        {/* The total is the one figure that has to fit a box it does not
+            control: a fixed 5/12 column, holding the longest string on the
+            page. `@container` is what lets `--text-total` measure that column
+            instead of the viewport. */}
         <div
-          className="flex flex-col justify-between gap-6 p-5 sm:p-8 lg:col-span-5"
+          className="@container flex flex-col justify-between gap-6 p-5 sm:p-8 lg:col-span-5"
           style={{ background: "var(--slot-0)", color: "var(--on-0)" }}
         >
           <div>
             <p className={MICRO}>Total debited</p>
-            <p className="font-display mt-2 text-[clamp(3rem,11vw,5.6rem)] leading-[0.82] tracking-[-0.02em] tabular-nums">
+            <p className="font-display text-total mt-2 leading-[0.82] tracking-[-0.02em] tabular-nums">
               {formatPaise(s.totalPaise)}
             </p>
           </div>
@@ -105,12 +112,12 @@ export function Dashboard() {
           >
             <div>
               <dt className={MICRO}>On last month</dt>
-              <dd className="font-display text-[22px] tabular-nums">
+              <dd className="font-display text-figure tabular-nums">
                 {hasPrevious
                   ? `${s.deltaPaise >= 0 ? "+" : "−"}${Math.abs(s.deltaPct).toFixed(1)}%`
                   : DASH}
               </dd>
-              <dd className="text-[12px]">
+              <dd className="text-meta">
                 {hasPrevious
                   ? formatPaise(Math.abs(s.deltaPaise))
                   : "No prior month on file"}
@@ -118,8 +125,8 @@ export function Dashboard() {
             </div>
             <div>
               <dt className={MICRO}>Debits</dt>
-              <dd className="font-display text-[22px] tabular-nums">{s.debits}</dd>
-              <dd className="text-[12px]">
+              <dd className="font-display text-figure tabular-nums">{s.debits}</dd>
+              <dd className="text-meta">
                 {s.activeDays} of {DAYS_IN_MONTH} days active
               </dd>
             </div>
@@ -130,16 +137,19 @@ export function Dashboard() {
       {/* ----------------------------------------------------------- rail -- */}
       <section className="border-rule bg-card grid grid-cols-2 border-2 lg:grid-cols-4">
         {rail.map((cell) => (
+          // Four cells at lg, two below it, so a cell's width roughly halves at
+          // the breakpoint while the viewport barely moves. Sizing on the cell
+          // is the only way the figure tracks that.
           <div
             key={cell.label}
-            className="flex flex-col gap-1 p-4 sm:p-5"
+            className="@container flex flex-col gap-1 p-4 sm:p-5"
             style={{ outline: "2px solid var(--rule)", outlineOffset: "-1px" }}
           >
             <span className={`${MICRO} text-muted`}>{cell.label}</span>
-            <span className="font-display text-[clamp(1.6rem,4.4vw,2.4rem)] leading-none tracking-[-0.01em] tabular-nums">
+            <span className="font-display text-rail leading-none tracking-[-0.01em] tabular-nums">
               {cell.value}
             </span>
-            <span className="text-ink-2 text-[12px] leading-snug">{cell.note}</span>
+            <span className="text-ink-2 text-meta leading-snug">{cell.note}</span>
           </div>
         ))}
       </section>
@@ -147,11 +157,11 @@ export function Dashboard() {
       {/* -------------------------------------------------------- verdict -- */}
       {/* The full-bleed statement block: it carries the month's headline finding
           once there is one to carry. */}
-      <section className="bg-bar text-on-bar border-rule border-2 p-5 sm:p-8 lg:p-10">
-        <h2 className="font-display text-[clamp(1.8rem,5.4vw,3.4rem)] leading-[0.86] tracking-[-0.02em] uppercase">
+      <section className="bg-bar text-on-bar border-rule @container border-2 p-5 sm:p-8 lg:p-10">
+        <h2 className="font-display text-statement leading-[0.86] tracking-[-0.02em] uppercase">
           {hasData ? "The month, in one line" : "Nothing recorded yet"}
         </h2>
-        <p className="mt-6 max-w-[62ch] text-[14px] leading-relaxed opacity-90">
+        <p className="text-body mt-6 max-w-[62ch] leading-relaxed opacity-90">
           {hasData
             ? "The headline finding for the month goes here."
             : "No account is connected. Once transactions land, this block carries the month's headline finding — what moved, and against what."}
@@ -165,8 +175,12 @@ export function Dashboard() {
           title="Every rupee, to scale"
           note="Area is amount. The ten categories nest inside the seven frozen groups: one colour is one group, and the wide gutters mark where a group ends. Packed by size, never sorted by colour."
         />
-        <Treemap ratio={1.85} className="hidden md:block" />
-        <Treemap ratio={0.78} className="md:hidden" compact />
+        {/* The landscape ratio squeezes the smallest categories into slivers a
+            few characters wide, so it only comes in once the frame is wide
+            enough to label them — one breakpoint later than it used to. Between
+            `md` and `lg` the portrait layout is the one that fits. */}
+        <Treemap ratio={1.85} className="hidden lg:block" />
+        <Treemap ratio={0.78} className="lg:hidden" compact />
       </section>
 
       {/* ------------------------------------------------ pie + vs. prior -- */}

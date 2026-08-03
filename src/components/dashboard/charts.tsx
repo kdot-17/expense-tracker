@@ -42,12 +42,75 @@ function tooltipStyle(P: Palette, bodyFont: string) {
     cornerRadius: 0,
     padding: 10,
     displayColors: false,
-    titleFont: { family: bodyFont, size: 12, weight: 700 as const },
-    bodyFont: { family: bodyFont, size: 13 },
+    titleFont: { family: bodyFont, size: remPx(AXIS_NAME_REM), weight: 700 as const },
+    bodyFont: { family: bodyFont, size: remPx(TOOLTIP_BODY_REM) },
   };
 }
 
-const MICRO = "text-[10px] font-semibold uppercase tracking-[0.18em] text-muted";
+const MICRO = "text-micro font-semibold uppercase tracking-[0.18em] text-muted";
+
+/**
+ * Plot frames. Chart.js needs a parent with a definite height (design-system
+ * §5.4); an aspect ratio gives it one that is derived from the width instead of
+ * frozen in pixels, so a plot reflows with its column rather than at a
+ * breakpoint. The ratios match the proportions the fixed heights produced at
+ * each band, so the shapes are unchanged — they are just no longer fixed.
+ */
+const LINE_FRAME = "aspect-[6/5] sm:aspect-[16/9] lg:aspect-[11/5]";
+const BAR_FRAME = "aspect-square sm:aspect-[3/2] lg:aspect-[4/3]";
+
+/**
+ * A canvas has no CSS, so the responsive rules have to be arithmetic here.
+ * These are all *ratios* — of the plot's own width, or of the gutter — so the
+ * chart looks the same at any size instead of at one size.
+ */
+/** Share of the bar plot reserved for the value printed past each bar. */
+const VALUE_GUTTER = 0.24;
+/** Gap between the bar's end and its value, as a share of that gutter. */
+const VALUE_OFFSET = 0.1;
+/** Legibility floor and ceiling, in rem — never px, so they follow the reader. */
+const VALUE_FONT_MIN_REM = 0.6875;
+const VALUE_FONT_MAX_REM = 0.9375;
+
+/** The root font size in px — the bridge from the CSS rem world to the canvas. */
+function rootFontPx(): number {
+  if (typeof document === "undefined") return 16;
+  return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+}
+
+/**
+ * Canvas type, expressed in rem and resolved to px at draw time, so the charts
+ * follow the reader's browser font setting exactly as the markup does. Chart.js
+ * only accepts a number, which is why this conversion has to be explicit.
+ */
+const remPx = (rem: number) => Math.round(rem * rootFontPx());
+
+/** Matches the --text-tick / --text-meta / --text-note steps in globals.css. */
+const TICK_REM = 0.6875;
+const AXIS_NAME_REM = 0.75;
+const TOOLTIP_BODY_REM = 0.8125;
+
+/**
+ * The largest size, within the legibility bounds, at which every label fits the
+ * space available. Measuring beats assuming: the reserve used to be a constant
+ * that was correct for a rupee-rounded string and too small once paise arrived.
+ */
+function fitFontPx(
+  ctx: CanvasRenderingContext2D,
+  labels: string[],
+  available: number,
+  family: string,
+): number {
+  const root = rootFontPx();
+  const max = VALUE_FONT_MAX_REM * root;
+  const min = VALUE_FONT_MIN_REM * root;
+
+  ctx.font = `400 ${max}px ${family}`;
+  const widest = labels.reduce((w, label) => Math.max(w, ctx.measureText(label).width), 0);
+  if (widest <= available || widest === 0) return max;
+
+  return Math.max(min, Math.floor(max * (available / widest)));
+}
 
 const share = (part: number, whole: number) =>
   whole === 0 ? "0.0" : ((part / whole) * 100).toFixed(1);
@@ -60,8 +123,15 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
   const total = totalSpendPaise();
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-      <div className="relative h-[260px] w-full min-h-0 min-w-0 shrink-0 sm:h-[320px] lg:w-[320px]">
+    // `flex-wrap` with a real basis on the legend, so when the row cannot hold
+    // both the legend drops beneath the pie instead of being crushed. It used
+    // to keep its place and surrender its width: at a 7/12 column the name
+    // column collapsed to a few pixels and every group read as an ellipsis.
+    <div className="flex flex-col gap-6 lg:flex-row lg:flex-wrap lg:items-center">
+      {/* A pie is circular, so its frame is square at every width. It takes a
+          share of the row rather than a fixed width, capped once it is as big
+          as it needs to be. */}
+      <div className="relative aspect-square w-full max-w-[20rem] min-h-0 min-w-0 shrink-0 lg:w-[38%]">
         {total === 0 ? (
           // A pie of seven zeroes draws nothing at all, which reads as a broken
           // chart rather than an empty one.
@@ -112,7 +182,7 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
       </div>
 
       {/* The legend is the table. It stands on its own with no chart. */}
-      <ol className="border-rule min-w-0 flex-1 border-t-2">
+      <ol className="border-rule min-w-0 flex-1 basis-[18rem] border-t-2">
         {groups.map((entry, i) => (
           <li
             key={entry.group}
@@ -126,19 +196,19 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
               className="border-rule size-4 shrink-0 border-2"
               style={{ background: `var(--slot-${i})` }}
             />
-            <span className="text-ink min-w-0 flex-1 truncate text-[13px] font-medium">
+            <span className="text-ink text-note min-w-0 flex-1 truncate font-medium">
               {entry.group}
             </span>
             {/* With nothing wired up, "₹0" and "0.0%" beside a "No transactions
                 yet" plot would assert we checked and the group is empty. We did
                 not check anything. */}
             <span
-              className="text-ink shrink-0 text-[15px] tabular-nums"
+              className="text-ink text-lede shrink-0 tabular-nums"
               style={{ fontFamily: displayFont }}
             >
               {total === 0 ? "—" : formatPaise(entry.amountPaise)}
             </span>
-            <span className="text-ink-2 w-12 shrink-0 text-right text-[12px] tabular-nums">
+            <span className="text-ink-2 text-meta w-12 shrink-0 text-right tabular-nums">
               {total === 0 ? "" : `${share(entry.amountPaise, total)}%`}
             </span>
           </li>
@@ -182,7 +252,7 @@ export function SpendLine({ bodyFont }: Fonts) {
                 type="button"
                 onClick={() => setGrain(option)}
                 aria-pressed={active}
-                className={`border-rule -ml-0.5 border-2 px-4 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase focus-visible:relative focus-visible:z-10 ${
+                className={`border-rule text-tick -ml-0.5 border-2 px-4 py-1.5 font-semibold tracking-[0.18em] uppercase focus-visible:relative focus-visible:z-10 ${
                   active ? "bg-rule text-page" : "text-ink bg-transparent"
                 }`}
               >
@@ -194,7 +264,9 @@ export function SpendLine({ bodyFont }: Fonts) {
       </div>
 
       {hasData ? (
-        <div className="border-rule bg-card relative h-[280px] w-full min-h-0 min-w-0 border-2 p-2 sm:h-[340px]">
+        <div
+          className={`border-rule bg-card relative w-full min-h-0 min-w-0 border-2 p-2 ${LINE_FRAME}`}
+        >
           <Line
             key={theme}
             aria-label={`Spend per ${isDaily ? "day" : "week"}. ${labels
@@ -245,7 +317,7 @@ export function SpendLine({ bodyFont }: Fonts) {
                   border: { color: P.rule, width: 2 },
                   ticks: {
                     color: P.muted,
-                    font: { family: bodyFont, size: 11 },
+                    font: { family: bodyFont, size: remPx(TICK_REM) },
                     maxRotation: 0,
                     autoSkipPadding: 10,
                   },
@@ -256,7 +328,7 @@ export function SpendLine({ bodyFont }: Fonts) {
                   border: { color: P.rule, width: 2 },
                   ticks: {
                     color: P.muted,
-                    font: { family: bodyFont, size: 11 },
+                    font: { family: bodyFont, size: remPx(TICK_REM) },
                     maxTicksLimit: 5,
                     callback: (value) => formatPaiseCompact(Number(value)),
                   },
@@ -282,12 +354,14 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
   const groupNames = merchants.map((entry) => merchantGroup(entry.merchant));
 
   if (merchants.length === 0) {
-    return <EmptyPlot className="h-[340px] sm:h-[400px]" label="No merchants yet" />;
+    return <EmptyPlot className={BAR_FRAME} label="No merchants yet" />;
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="border-rule bg-card relative h-[340px] w-full min-h-0 min-w-0 border-2 p-2 sm:h-[400px]">
+      <div
+        className={`border-rule bg-card relative w-full min-h-0 min-w-0 border-2 p-2 ${BAR_FRAME}`}
+      >
         <Bar
           key={theme}
           aria-label={`Top ${merchants.length} merchants by spend. ${merchants
@@ -313,9 +387,16 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
-            // Room for the value drawn past the end of each bar. Sized for a
-            // full paise figure — `₹1,23,456.78`, not `₹1,23,457`.
-            layout: { padding: { right: 92 } },
+            // Room for the value drawn past the end of each bar, as a share of
+            // the plot rather than a pixel count — this chart is a 5/12 column
+            // at lg and full width below it, so any fixed reserve is wrong at
+            // one of the two. The `barValues` plugin fits its type to whatever
+            // this leaves it, so the two cannot disagree.
+            layout: {
+              padding: (ctx) => ({
+                right: Math.round((ctx.chart?.width ?? 0) * VALUE_GUTTER),
+              }),
+            },
             plugins: {
               legend: { display: false }, // named swatches sit under the chart
               tooltip: {
@@ -333,7 +414,7 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
                 border: { color: P.rule, width: 2 },
                 ticks: {
                   color: P.muted,
-                  font: { family: bodyFont, size: 11 },
+                  font: { family: bodyFont, size: remPx(TICK_REM) },
                   maxTicksLimit: 5,
                   callback: (value) => formatPaiseCompact(Number(value)),
                 },
@@ -343,7 +424,7 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
                 border: { color: P.rule, width: 2 },
                 ticks: {
                   color: P.ink,
-                  font: { family: bodyFont, size: 12, weight: 700 },
+                  font: { family: bodyFont, size: remPx(AXIS_NAME_REM), weight: 700 },
                 },
               },
             },
@@ -355,13 +436,21 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
                 const meta = chart.getDatasetMeta(0);
                 const raw = chart.data.datasets[0]?.data ?? [];
                 const { ctx } = chart;
+                const labels = raw.map((value) => formatPaise(Number(value ?? 0)));
+                const gutter = chart.width * VALUE_GUTTER;
+                const offset = gutter * VALUE_OFFSET;
+
                 ctx.save();
                 ctx.fillStyle = P.ink;
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
-                ctx.font = `400 13px ${displayFont}`;
+                // Shrink to whatever the reserved gutter actually allows, so a
+                // long figure cannot run off the canvas the way a fixed size
+                // would. Bounded below, because an unreadable label is no
+                // better than a clipped one.
+                ctx.font = `400 ${fitFontPx(ctx, labels, gutter - offset, displayFont)}px ${displayFont}`;
                 meta.data.forEach((bar, i) => {
-                  ctx.fillText(formatPaise(Number(raw[i] ?? 0)), bar.x + 10, bar.y + 1);
+                  ctx.fillText(labels[i] ?? "", bar.x + offset, bar.y + 1);
                 });
                 ctx.restore();
               },

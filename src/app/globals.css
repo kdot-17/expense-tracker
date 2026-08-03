@@ -184,6 +184,53 @@
   --font-sans: var(--font-brut-body), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* -------------------------------------------------------------- type scale --
+   Every size is `rem`, never `px`, so the whole page follows the reader's
+   browser font setting instead of overriding it. A reader who sets 20px text
+   gets a page 25% larger; with px it would not move at all.
+
+   The fixed steps below are the old px values expressed as rem at a 16px root,
+   so nothing changes size at the default setting — they stop being frozen, is
+   all. */
+@theme {
+  --text-micro: 0.625rem; /* 10 — micro-caps, the label voice */
+  --text-tick: 0.6875rem; /* 11 — axis ticks, dense rows */
+  --text-meta: 0.75rem; /* 12 — secondary metadata */
+  --text-note: 0.8125rem; /* 13 — notes and table body */
+  --text-body: 0.875rem; /* 14 — body copy */
+  --text-lede: 0.9375rem; /* 15 — body copy, wide */
+  --text-figure: 1.375rem; /* 22 — small figure */
+
+  /* ---- fluid display steps ----
+     These are `cqi` — 1% of the *container's* inline size — not `vw`. A
+     headline sits in a column that is a fixed fraction of the page, so its
+     width is only loosely related to the viewport: at 1024px the total's
+     column is 329px while `11vw` still reads 112px, which is how a figure ends
+     up wider than the box it lives in. Sizing against the container means the
+     type is large exactly when there is room for it to be.
+
+     Each of these REQUIRES an ancestor carrying `@container`. Without one,
+     `cqi` falls back to the small viewport, which is merely the old
+     viewport-relative behaviour — degraded, not broken. See docs/design-system.md. */
+  --text-masthead: clamp(2.6rem, 13cqi, 6.4rem);
+  /* 18.5cqi is not a taste decision. Anton averages ~0.40em per character in a
+     grouped rupee figure, and the longest amount the `integer` paise column can
+     hold is 13 characters — `₹21,47,483.64` — so the figure needs ~5.2em. At
+     18.5% of the column that lands inside it at every width the column takes.
+     Raising this makes the largest amounts overflow their block. */
+  --text-total: clamp(2.25rem, 18.5cqi, 5.6rem);
+  --text-rail: clamp(1.5rem, 13cqi, 2.4rem);
+  --text-section: clamp(1.35rem, 7cqi, 2.35rem);
+  --text-statement: clamp(1.8rem, 8cqi, 3.4rem);
+
+  /* The calendar is seven `aspect-square` cells across, so a cell is exactly
+     one seventh of the grid and nothing else. Its type follows that directly
+     rather than through breakpoints, which is why the grid is a container. */
+  --text-cell-head: clamp(0.625rem, 2cqi, 0.6875rem);
+  --text-cell-day: clamp(0.6875rem, 2.4cqi, 0.8125rem);
+  --text-cell-figure: clamp(0.5rem, 1.9cqi, 0.625rem);
+}
+
 /* -------------------------------------------------------------------- base */
 
 body {

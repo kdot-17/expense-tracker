@@ -22,7 +22,7 @@ export default async function LoginPage() {
           <br />
           Tracker
         </h1>
-        <p className="text-muted mt-3 mb-8 text-[10px] font-semibold tracking-[0.2em] uppercase">
+        <p className="text-muted mt-3 mb-8 text-micro font-semibold tracking-[0.2em] uppercase">
           Sign in to continue
         </p>
         <LoginForm />
