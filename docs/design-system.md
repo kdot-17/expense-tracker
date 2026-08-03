@@ -108,6 +108,12 @@ that block. Use it; do not guess white.
 | `--grid` | `#DDD9CF` | `#262626` | chart gridlines, light row rules |
 | `--rule` | `#111111` | `#FFFFFF` | every heavy border |
 | `--bar` / `--on-bar` | `#111111` / `#F5F3ED` | `#171717` / `#FFFFFF` | masthead, footer, verdict block |
+| `--focus` | `#3D74D9` | `#3D74D9` | the focus ring — one value, both themes |
+
+`--focus` is deliberately **not** a categorical slot. The ring can land on any
+surface, including the masthead band, which the slot checks never look at.
+Reusing `--slot-4` shipped a **2.49:1** ring on the light bar; the current token
+clears **≥4.01:1** on all six surfaces. Check 7 enforces it.
 
 `--bar` stays dark in **both** themes. Flipping it would put the brightest
 object on the page in the reader's eyeline. On the black theme it is *lighter*
@@ -134,6 +140,7 @@ step 0 — they are struck out with a hatch, so absence reads as absence.
 | 4 | Normal-vision floor | every pair ΔE ≥ 15 |
 | 5 | Surface contrast | every slot ≥ 3:1 on page *and* card |
 | 6 | Ink contrast | ink ≥ 7:1, ink-2 ≥ 4.5:1, muted ≥ 3:1 |
+| 7 | Focus ring | `--focus` ≥ 3:1 on page, card **and** bar (WCAG 1.4.11) |
 
 **Why 3 is split.** Six distinct hues cannot all be pairwise separable under full
 dichromacy — green and red-orange *are* the same colour to a deuteranope, and no
@@ -184,8 +191,12 @@ Five rules, each of which has already caused a bug here:
    flex child floors at content height and the canvas can never shrink.
 5. **`ctx.parsed.x` / `.y` are `number | null`.** Write `?? 0`.
 
-Every canvas needs `role="img"` and an `aria-label` naming the series and its
-values, because a canvas is otherwise invisible to a screen reader.
+Every canvas needs an `aria-label` naming the series and its values, because a
+canvas is otherwise invisible to a screen reader. react-chartjs-2 already puts
+`role="img"` on the canvas but supplies **no accessible name**, so passing the
+label is on us — without it each chart is announced as an unlabelled graphic
+(WCAG 1.1.1). `ChartProps` extends `CanvasHTMLAttributes`, so the prop forwards
+straight onto the element.
 
 ---
 
@@ -211,8 +222,18 @@ Resolution order: `data-theme` on `<html>` → `prefers-color-scheme` → light.
 - Page max width `1360px`, gutters `px-4 / sm:px-6 / lg:px-10`.
 - Sections are a 12-column grid at `lg`, stacked below it.
 - Vertical rhythm between sections: `gap-10`, `lg:gap-14`.
-- Nothing may cause horizontal page scroll between 360px and 1800px. Wide things
-  (ledger, calendar, treemap) scroll inside their own `overflow-x-auto` box.
+- Nothing may cause horizontal page scroll between 360px and 1800px, and there
+  are **two** strategies for that, not one:
+  - **Scroll box** — the ledger only. Its `min-w-[420px]` table sits in an
+    `overflow-x-auto` container, which is `tabIndex={0}` + `role="group"`
+    because a scroll container nothing can focus is unreachable by keyboard.
+  - **Stay fluid** — the calendar and treemap have no scroll box. The calendar
+    is a `grid-cols-7` of `aspect-square` cells; the treemap is
+    percentage-positioned cells in an `aspect-ratio` frame, with a taller ratio
+    swapped in below `md`. Adding a scroll box to either would defeat this.
+- Grid children need `min-w-0`. A grid item defaults to `min-width: auto`, so a
+  chart canvas or a wide table sets its track's floor at content width and
+  pushes the whole page sideways.
 
 ---
 
@@ -220,10 +241,12 @@ Resolution order: `data-theme` on `<html>` → `prefers-color-scheme` → light.
 
 ```
 src/app/globals.css              design tokens, both themes   ← start here
-src/app/layout.tsx               fonts, theme bootstrap, shell
+src/app/layout.tsx               font vars + theme bootstrap, shell
 src/app/page.tsx                 the dashboard route (auth-gated)
 src/components/dashboard/        the page itself, one file per section
 src/components/theme-toggle.tsx  the light/dark control
+src/lib/chart-setup.ts           Chart.js registration — see §5
+src/lib/fonts.ts                 the two faces — see §4
 src/lib/palette.ts               the canvas mirror of the tokens
 src/lib/theme.ts                 theme store + bootstrap script
 src/lib/transactions.ts          data layer — currently empty, no store wired

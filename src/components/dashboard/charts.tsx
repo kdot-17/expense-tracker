@@ -75,6 +75,11 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
         ) : (
           <Pie
             key={theme}
+            // react-chartjs-2 puts role="img" on the canvas itself but gives it
+            // no name, so without this every chart is an unlabelled graphic.
+            aria-label={`Spending by group. Total ${formatINR(total)}. ${groups
+              .map((e) => `${e.group}: ${formatINR(e.amount)}, ${share(e.amount, total)} per cent`)
+              .join(". ")}`}
             data={{
               labels: groups.map((entry) => entry.group),
               datasets: [
@@ -127,14 +132,17 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
             <span className="text-ink min-w-0 flex-1 truncate text-[13px] font-medium">
               {entry.group}
             </span>
+            {/* With nothing wired up, "₹0" and "0.0%" beside a "No transactions
+                yet" plot would assert we checked and the group is empty. We did
+                not check anything. */}
             <span
               className="text-ink shrink-0 text-[15px] tabular-nums"
               style={{ fontFamily: displayFont }}
             >
-              {formatINR(entry.amount)}
+              {total === 0 ? "—" : formatINR(entry.amount)}
             </span>
             <span className="text-ink-2 w-12 shrink-0 text-right text-[12px] tabular-nums">
-              {share(entry.amount, total)}%
+              {total === 0 ? "" : `${share(entry.amount, total)}%`}
             </span>
           </li>
         ))}
@@ -192,6 +200,9 @@ export function SpendLine({ bodyFont }: Fonts) {
         <div className="border-rule bg-card relative h-[280px] w-full min-h-0 min-w-0 border-2 p-2 sm:h-[340px]">
           <Line
             key={theme}
+            aria-label={`Spend per ${isDaily ? "day" : "week"}. ${labels
+              .map((l, i) => `${isDaily ? `Day ${l}` : l}: ${formatINR(values[i] ?? 0)}`)
+              .join(". ")}`}
             data={{
               labels,
               datasets: [
@@ -282,6 +293,9 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
       <div className="border-rule bg-card relative h-[340px] w-full min-h-0 min-w-0 border-2 p-2 sm:h-[400px]">
         <Bar
           key={theme}
+          aria-label={`Top ${merchants.length} merchants by spend. ${merchants
+            .map((e, i) => `${e.merchant}, ${groupNames[i]}: ${formatINR(e.amount)}`)
+            .join(". ")}`}
           data={{
             labels: merchants.map((entry) => entry.merchant.toUpperCase()),
             datasets: [

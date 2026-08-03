@@ -251,6 +251,14 @@ if (process.argv.includes("--all")) {
   compare("dark", cssDark, "DARK");
   compare("dark(@media)", cssDarkMedia, "DARK");
 
+  // --focus is declared once, in its own :root block near the rules that use
+  // it, so it is not inside either theme block. Scan the whole file for it
+  // rather than the per-theme vars, or check 7 silently never runs.
+  const focusToken = (css.match(/--focus:\s*(#[0-9a-fA-F]{6})/) ?? [])[1];
+  if (!focusToken) {
+    mismatches.push("globals.css declares no --focus token — check 7 cannot run");
+  }
+
   const run = (vars) =>
     spawnCheck({
       page: vars.page,
@@ -260,6 +268,8 @@ if (process.argv.includes("--all")) {
       ink: vars.ink,
       ink2: vars["ink-2"],
       muted: vars.muted,
+      focus: focusToken,
+      bar: vars.bar,
     });
 
   const { execFileSync } = await import("node:child_process");
@@ -272,6 +282,8 @@ if (process.argv.includes("--all")) {
           "--page", cfg.page, "--card", cfg.card,
           "--slots", cfg.slots.join(","), "--other", cfg.other,
           "--ink", cfg.ink, "--ink2", cfg.ink2, "--muted", cfg.muted,
+          ...(cfg.focus ? ["--focus", cfg.focus] : []),
+          ...(cfg.bar ? ["--bar", cfg.bar] : []),
         ],
         { encoding: "utf8" },
       );
@@ -468,6 +480,32 @@ const add = (name, ok, detail) => results.push({ name, ok, detail });
     `worst vs page ${worstP.toFixed(2)}:1, vs card ${worstC.toFixed(2)}:1, both ≥ 3:1` +
       (bad.length ? `  ← ${bad.join("; ")}` : ""),
   );
+}
+
+// 7 — the focus ring.
+//
+// This exists because reusing a categorical slot as the focus colour shipped a
+// 2.49:1 ring on the masthead band: `bar` is not in the page/card set checks 1-6
+// look at, so nothing caught it. The ring can land on ANY surface, so it is
+// checked against all of them.
+{
+  if (args.focus) {
+    const surfaces = [
+      ["page", page],
+      ["card", card],
+      ...(args.bar ? [["bar", args.bar]] : []),
+    ];
+    const rows = surfaces.map(([n, hexv]) => {
+      const r = contrast(args.focus, hexv);
+      return `${n} ${r.toFixed(2)}:1${r < 3 ? "  ← FAIL" : ""}`;
+    });
+    const worst = Math.min(...surfaces.map(([, hexv]) => contrast(args.focus, hexv)));
+    add(
+      "7 FOCUS RING",
+      worst >= 3,
+      `${args.focus} vs ${rows.join(" · ")} (all ≥ 3:1, WCAG 1.4.11)`,
+    );
+  }
 }
 
 // 6 — the ink ramp

@@ -1,4 +1,11 @@
-import { byGroup, formatINR, groupVsPrevious } from "@/lib/transactions";
+import {
+  byGroup,
+  formatINR,
+  groupVsPrevious,
+  PREVIOUS_MONTH_TOTAL,
+} from "@/lib/transactions";
+
+import { EmptyPlot } from "./empty";
 
 /**
  * A diverging strip, not a chart: one shared zero line down the middle, bars
@@ -6,9 +13,18 @@ import { byGroup, formatINR, groupVsPrevious } from "@/lib/transactions";
  * signed number both carry the sign, so the colour is only ever identity.
  */
 export function VersusPrevious() {
+  // Without a prior month every delta is 0, and the rows would read "no change"
+  // and "identical to last month" — a comparison against a month that does not
+  // exist. The header already says "No prior month on file"; say the same here.
+  if (PREVIOUS_MONTH_TOTAL <= 0) {
+    return <EmptyPlot label="No prior month on file" />;
+  }
+
   const deltas = groupVsPrevious();
   const groups = byGroup();
-  const max = Math.max(...deltas.map((entry) => Math.abs(entry.delta)));
+  // Floored at 1: a real month where every group moved by exactly zero would
+  // otherwise divide by zero and size every bar NaN.
+  const max = Math.max(1, ...deltas.map((entry) => Math.abs(entry.delta)));
 
   return (
     <div className="flex flex-col">

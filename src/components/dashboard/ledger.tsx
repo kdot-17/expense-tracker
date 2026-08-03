@@ -4,7 +4,14 @@ import { CATEGORY_TO_GROUP, formatINR, TRANSACTIONS } from "@/lib/transactions";
 export function Ledger() {
   return (
     <div className="border-2 border-rule bg-card">
-      <div className="max-h-[560px] overflow-x-auto overflow-y-auto">
+      {/* Scrolls in both axes, so it needs to be focusable — a keyboard-only
+          reader cannot reach a scroll container that nothing can focus. */}
+      <div
+        className="max-h-[560px] overflow-x-auto overflow-y-auto"
+        tabIndex={0}
+        role="group"
+        aria-label="The ledger — every debit this month, scrolls"
+      >
         <table className="w-full min-w-[420px] border-collapse text-left">
           <caption className="sr-only">
             Every debit this month in date order, with merchant, category and

@@ -198,8 +198,17 @@ body {
   border-radius: 0;
 }
 
+/* The focus ring is NOT a categorical slot. It has to clear 3:1 on every
+   surface it can land on — including the masthead band, which is not in the
+   validated page/card set. Reusing --slot-4 here measured 2.49:1 on the light
+   bar (WCAG 1.4.11). Declared once; both dark blocks inherit it. Checked by
+   `npm run palette`, check 7. */
+:root {
+  --focus: #3d74d9;
+}
+
 :focus-visible {
-  outline: 3px solid var(--slot-4);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 

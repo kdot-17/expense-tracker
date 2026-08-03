@@ -182,7 +182,11 @@ export function Dashboard() {
           <SectionHead
             index="03"
             title="Against last month"
-            note="Signed rupees across the same seven groups on one shared zero line. Bars scale to the largest move in either direction."
+            note={
+              hasPrevious
+                ? "Signed rupees across the same seven groups on one shared zero line. Bars scale to the largest move in either direction."
+                : "Signed rupees across the same seven groups on one shared zero line, once there is a prior month to compare against."
+            }
           />
           <VersusPrevious />
         </div>
@@ -203,7 +207,11 @@ export function Dashboard() {
           <SectionHead
             index="05"
             title="The month as a grid"
-            note="One block per day on a single-hue ramp, Monday start. Days with nothing on them are struck out rather than shaded, so absence reads as absence."
+            note={
+              hasData
+                ? "One block per day on a single-hue ramp, Monday start. Days with nothing on them are struck out rather than shaded, so absence reads as absence."
+                : "One block per day, Monday start. Once transactions land, each day shades on a single-hue ramp and genuinely empty days are struck out."
+            }
           />
           <CalendarBlock />
         </div>

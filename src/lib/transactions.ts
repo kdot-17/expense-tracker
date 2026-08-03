@@ -93,6 +93,32 @@ export const DAYS_IN_MONTH = PERIOD.daysInMonth;
 export const FIRST_WEEKDAY = PERIOD.firstWeekday;
 export const MONTH_LABEL = PERIOD.label;
 
+/**
+ * Monday-first, matching FIRST_WEEKDAY and the calendar's column order. Declared
+ * here rather than in a component so every weekday label in the app comes from
+ * one place — the calendar grid and its median strip used to disagree, one
+ * showing "M T W" and the other "Mon Tue Wed".
+ */
+export const WEEKDAYS_LONG = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+export const WEEKDAYS_SHORT = [
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+  "Sun",
+] as const;
+
 /** True while nothing is wired up — the page uses it to pick empty states. */
 export const HAS_DATA = TRANSACTIONS.length > 0;
 
