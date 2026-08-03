@@ -34,15 +34,12 @@ export function Masthead() {
   );
 }
 
+/** Closes the sheet with the one thing a reader still needs: the unit. */
 export function Colophon() {
   return (
     <footer className="bg-bar text-on-bar w-full">
-      <div className="mx-auto flex w-full max-w-[1360px] flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-6 lg:px-10">
-        <span className={MICRO}>Sample data · not wired to an account</span>
+      <div className="mx-auto w-full max-w-[1360px] px-4 py-3 sm:px-6 lg:px-10">
         <span className={MICRO}>All figures in INR</span>
-        <span className={`${MICRO} hidden lg:inline`}>
-          Anton / Inter · 6 categorical hexes, frozen
-        </span>
       </div>
     </footer>
   );
