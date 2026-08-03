@@ -8,7 +8,6 @@ import {
   MONTH_LABEL,
   PREVIOUS_MONTH_TOTAL_PAISE,
   stats,
-  verticalVsPrevious,
 } from "@/lib/expenses";
 import { body, display } from "@/lib/fonts";
 import { formatPaise } from "@/lib/money";
@@ -17,29 +16,16 @@ import { VERTICAL_ORDER } from "@/lib/taxonomy";
 const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
 const DASH = "—";
 
-function SectionHead({
-  index,
-  title,
-  note,
-}: {
-  index: string;
-  title: string;
-  note?: string;
-}) {
+function SectionHead({ index, title }: { index: string; title: string }) {
   return (
     // `@container` here rather than on the page: these heads sit in columns of
     // three different widths (full bleed, 7/12, 5/12), and each should size to
     // the one it is actually in.
-    <div className="border-rule @container flex flex-col gap-2 border-b-2 pb-3">
-      <div className="flex items-baseline gap-3">
-        <span className={`${MICRO} text-muted shrink-0 tabular-nums`}>{index}</span>
-        <h2 className="font-display text-section leading-[0.9] tracking-[-0.01em] uppercase">
-          {title}
-        </h2>
-      </div>
-      {note ? (
-        <p className="text-ink-2 text-note max-w-[74ch] leading-relaxed">{note}</p>
-      ) : null}
+    <div className="border-rule @container flex items-baseline gap-3 border-b-2 pb-3">
+      <span className={`${MICRO} text-muted shrink-0 tabular-nums`}>{index}</span>
+      <h2 className="font-display text-section leading-[0.9] tracking-[-0.01em] uppercase">
+        {title}
+      </h2>
     </div>
   );
 }
@@ -48,10 +34,6 @@ export function Dashboard() {
   const s = stats();
   const hasData = s.count > 0;
   const hasPrevious = PREVIOUS_MONTH_TOTAL_PAISE > 0;
-  // A month total is enough for the headline percentage but not for the
-  // per-vertical strip, so the two are asked separately rather than one being
-  // assumed from the other.
-  const hasVerticalHistory = verticalVsPrevious() !== null;
 
   // Derived, never typed as a literal — a hardcoded "ten verticals" in prose
   // goes stale the first time one is archived.
@@ -153,11 +135,7 @@ export function Dashboard() {
 
       {/* -------------------------------------------------------- treemap -- */}
       <section className="flex flex-col gap-5">
-        <SectionHead
-          index="01"
-          title="Every rupee, to scale"
-          note={`Area is amount. Subtypes nest inside the ${verticalCount} verticals they belong to: one colour is one vertical, and the wide gutters mark where a vertical ends. Packed by size, never sorted by colour.`}
-        />
+        <SectionHead index="01" title="Every rupee, to scale" />
         <Treemap ratio={1.85} className="hidden md:block" />
         <Treemap ratio={0.78} className="md:hidden" compact />
       </section>
@@ -165,24 +143,12 @@ export function Dashboard() {
       {/* ------------------------------------------------ pie + vs. prior -- */}
       <section className="grid gap-10 lg:grid-cols-12 lg:gap-8">
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-7">
-          <SectionHead
-            index="02"
-            title="The verticals, fixed order"
-            note="Food sits at twelve o'clock every month, so the shape is comparable month to month. Verticals never re-sort by size, and the numbered table carries every figure on its own."
-          />
+          <SectionHead index="02" title="The verticals, fixed order" />
           <VerticalPie bodyFont={bodyFont} displayFont={displayFont} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
-          <SectionHead
-            index="03"
-            title="Against last month"
-            note={
-              hasVerticalHistory
-                ? "Signed rupees across the same verticals on one shared zero line. Bars scale to the largest move in either direction."
-                : "Signed rupees across the same verticals on one shared zero line, once there is a prior month to compare against."
-            }
-          />
+          <SectionHead index="03" title="Against last month" />
           <VersusPrevious />
         </div>
       </section>
@@ -190,24 +156,12 @@ export function Dashboard() {
       {/* ----------------------------------------------- line + calendar -- */}
       <section className="grid gap-10 lg:grid-cols-12 lg:gap-8">
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-7">
-          <SectionHead
-            index="04"
-            title="Spend over time"
-            note="Zero-based. Switch the grain between individual days and the calendar weeks the month falls into."
-          />
+          <SectionHead index="04" title="Spend over time" />
           <SpendLine bodyFont={bodyFont} displayFont={displayFont} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
-          <SectionHead
-            index="05"
-            title="The month as a grid"
-            note={
-              hasData
-                ? "One block per day on a single-hue ramp, Monday start. Days with nothing on them are struck out rather than shaded, so absence reads as absence."
-                : "One block per day, Monday start. Once expenses land, each day shades on a single-hue ramp and genuinely empty days are struck out."
-            }
-          />
+          <SectionHead index="05" title="The month as a grid" />
           <CalendarBlock />
         </div>
       </section>
@@ -215,20 +169,12 @@ export function Dashboard() {
       {/* --------------------------------------------- subtypes + ledger -- */}
       <section className="grid gap-10 lg:grid-cols-12 lg:gap-8">
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
-          <SectionHead
-            index="06"
-            title="Where it actually went"
-            note="The largest subtypes of the month, coloured by the vertical each belongs to. Nothing is held back — an EMI will tower over a coffee, and that is the real shape of the month."
-          />
+          <SectionHead index="06" title="Where it actually went" />
           <SubtypeBars bodyFont={bodyFont} displayFont={displayFont} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-7">
-          <SectionHead
-            index="07"
-            title="The ledger"
-            note="Every expense, in date order. A heavy rule opens each new day."
-          />
+          <SectionHead index="07" title="The ledger" />
           <Ledger />
         </div>
       </section>
