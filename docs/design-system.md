@@ -235,8 +235,8 @@ split, eyeballing it stopped being realistic.
 | Role | Face | Spec |
 |---|---|---|
 | Display | Anton | `font-display`, uppercase, `leading-[0.82]`, `tracking-[-0.02em]` |
-| Body | Inter | `font-sans`, 13–15px, `leading-relaxed` |
-| Micro-caps | Inter | 10px, `font-semibold`, `uppercase`, `tracking-[0.2em]`, `text-muted` |
+| Body | Inter | `font-sans`, `text-note`–`text-lede`, `leading-relaxed` |
+| Micro-caps | Inter | `text-micro`, `font-semibold`, `uppercase`, `tracking-[0.2em]`, `text-muted` |
 | Figures | either | always `tabular-nums` in a column |
 
 Anton was chosen over Archivo Black specifically because **it carries U+20B9**,
@@ -244,6 +244,47 @@ so ₹ never falls back to a thin system glyph mid-number. If you swap the displ
 face, check the rupee glyph first.
 
 Headlines use `clamp()` and are expected to be genuinely large. Do not tame them.
+
+### The scale
+
+Declared once in `globals.css`, used as `text-*` utilities. **There are no
+`px` type sizes anywhere in `src/`** — a `px` size ignores the reader's browser
+font setting outright, so a reader who asks for larger text gets nothing.
+
+| Token | Size | Used for |
+|---|---|---|
+| `text-micro` | 0.625rem | micro-caps — the label voice |
+| `text-tick` | 0.6875rem | axis ticks, dense rows |
+| `text-meta` | 0.75rem | secondary metadata |
+| `text-note` | 0.8125rem | notes, table body |
+| `text-body` | 0.875rem | body copy |
+| `text-lede` | 0.9375rem | body copy, wide measure |
+| `text-figure` | 1.375rem | a small figure |
+
+### The fluid steps, and why they are `cqi` and not `vw`
+
+| Token | Sizes against |
+|---|---|
+| `text-masthead` | the masthead cell |
+| `text-total` | the "Total debited" block |
+| `text-section` | a section head's column |
+| `text-statement` | the full-bleed statement band |
+| `text-signin` | the sign-in card |
+| `text-cell-head` / `text-cell-day` / `text-cell-figure` | the calendar grid |
+
+`cqi` is 1% of the **container's** inline size. `vw` is 1% of the viewport, and
+for this layout those are barely related: a headline sits in a column that is a
+fixed *fraction* of the page, so at 1024px the total's column is 329px while
+`11vw` still reads 112px. That is how a figure ends up wider than the block it
+lives in — which it did, until these tokens replaced the `vw` clamps.
+
+**Every one of these requires an ancestor with `@container`.** Without one the
+unit falls back to the small viewport, which is just the old behaviour: degraded,
+not broken. The containers are on the masthead cells, each section head, the
+statement band, the sign-in card, both calendar grids, and the treemap frame.
+
+`--text-total` is the one whose coefficient is derived rather than chosen — see
+the note beside it in `globals.css`. Raising it makes large amounts overflow.
 
 ---
 
@@ -264,7 +305,9 @@ Five rules, each of which has already caused a bug here:
    colours follow a theme switch. Animation is off, so the rebuild is invisible.
 4. **Sizing:** `responsive: true` + `maintainAspectRatio: false` + a parent with
    a definite height + `min-h-0 min-w-0` on flex ancestors. Without `min-h-0` a
-   flex child floors at content height and the canvas can never shrink.
+   flex child floors at content height and the canvas can never shrink. That
+   definite height comes from an `aspect-*` class on the frame, not a fixed
+   height — see §7 Units.
 5. **`ctx.parsed.x` / `.y` are `number | null`.** Write `?? 0`.
 
 Every canvas needs an `aria-label` naming the series and its values, because a
@@ -300,13 +343,13 @@ and three tabbed views under it. At `lg` and up the page itself does not scroll
 at all. Below `lg` the board stacks and the page scrolls normally — seven
 modules in a locked phone viewport would be seven unreadable slivers.
 
-- Board max width `1800px`, padding `p-2.5 / lg:p-3`. The old document max width
-  of `1360px` still applies to the login page and any prose route.
+- Board max width `1800px`, padding `p-2.5 / lg:p-3`. The document max width of
+  `85rem` still applies to the masthead and to the login page.
 - Each panel is a 12-column grid at `lg`, stacked below it.
 - Gaps are `gap-2.5 / lg:gap-3`. The document's `gap-10 / lg:gap-14` rhythm was
   separating full-bleed sections; on a board it is dead space.
 
-### The four rules a fixed-viewport board has to obey
+### The six rules a fixed-viewport board has to obey
 
 Each of these has already broken this layout once.
 
@@ -354,7 +397,7 @@ Nothing may cause horizontal *page* scroll between 360px and 1800px, and there
 are **two** strategies for that, not one:
 
 - **Scroll box** — the ledger only, for the *horizontal* axis. Its
-  `min-w-[420px]` table sits in an `overflow-x-auto` container, which is
+  `min-w-[26.25rem]` table sits in an `overflow-x-auto` container, which is
   `tabIndex={0}` + `role="group"` because a scroll container nothing can focus
   is unreachable by keyboard. (Vertical scroll boxes are a separate list — see
   rule 5 above; all of them carry the same three attributes.)
@@ -367,9 +410,56 @@ are **two** strategies for that, not one:
   `lg`, `1.85` at `md`, `0.78` below that. Adding a scroll box to either module
   would defeat this.
 
+  That swap stays at `md` and not later: the portrait ratio is 0.78, so at a
+  1023px viewport it would stand 1250px tall. Slivers too narrow to label keep
+  their name and drop the amount and the share badge, each sized from its own
+  cell (`xsLabelSize`) — the ratio is not what fixes them.
+
 Grid children need `min-w-0`. A grid item defaults to `min-width: auto`, so a
 chart canvas or a wide table sets its track's floor at content width and pushes
 the whole page sideways.
+
+### Units
+
+A size is written in the unit that describes what it actually depends on:
+
+| Depends on | Unit | Examples |
+|---|---|---|
+| the reader's font setting | `rem` | every type size, the ledger's `min-w`, the pie's cap |
+| the box it sits in | `cqi`, `%`, `fr` | the fluid type steps, treemap cell type and padding |
+| its own width | `aspect-*` | every plot frame, calendar cells, the treemap |
+| nothing — it is a drawn line | `px` | the 2px rules, the treemap's 6px gutters, hatch stripes |
+
+That last row is the only place `px` belongs. A 2px rule is 2px because it is a
+rule; making it `rem` would give it a fractional width and a soft edge.
+
+**Plot frames carry an aspect ratio between a `min-h` floor and a `max-h`
+ceiling, never a fixed height.** Chart.js needs a parent with a definite height
+(§5.4), and a ratio gives it one derived from the width, so a plot reflows
+continuously with its column instead of stepping at a breakpoint. `LINE_FRAME`
+and `BAR_FRAME` are the two shapes, and they live in their own module,
+`src/components/dashboard/frames.ts` — **not** in `charts.tsx`, because
+`charts.tsx` imports `EmptyPlot` from `empty.tsx`, so `empty.tsx` cannot import
+back. The same string written out in both files is how a `max-h` came to exist
+in one copy and not the other, and an empty plot stood 548px tall beside a
+420px chart.
+
+Both bounds are load-bearing, and both are rem so they track the type they have
+to stay legible against. The **floor** exists because these columns get narrower
+at `lg`, not wider: the 12-column grid takes over, so the line plot's column
+falls from 720px at a 768px viewport to 537px at 1024px, and a pure ratio would
+squash a time series to 244px exactly where the page has most room. The
+**ceiling** stops the opposite — at the wide end of the `sm` band a bare ratio
+reaches 650px. The ratio governs between them.
+
+**A canvas has no CSS**, so `charts.tsx` does the same arithmetic by hand: tick
+and tooltip sizes come from `remPx()`, and the bar annotation measures its own
+widest figure and reserves exactly that, capped at `VALUE_GUTTER_MAX` of the
+plot. Neither constant works alone. A fixed pixel reserve is too small once a
+figure carries paise; a fixed *share* is right at one width only, and strands a
+quarter of a full-bleed plot behind a figure that stopped growing at its rem
+ceiling. `layout.padding` and the `barValues` plugin call the same function, so
+the space reserved and the space drawn into cannot drift apart.
 
 ---
 
@@ -379,11 +469,15 @@ the whole page sideways.
 src/app/globals.css              design tokens, both themes   ← start here
 src/app/layout.tsx               font vars + theme bootstrap, shell
 src/app/page.tsx                 the dashboard route (auth-gated) — see §7 rule 1
+src/app/icon.svg                 the app mark — see "The app icon" below
+src/app/favicon.ico              the same mark, 16/32/48, for Safari and legacy
+src/app/apple-icon.png           the same mark, 180px, for iOS home screens
 src/components/dashboard/        the board itself, one file per module
   dashboard.tsx                  which module sits in which tab and cell
   tab-shell.tsx                  the view switcher — the only client component
   tile.tsx                       the bordered box a module lives in
   kpi-strip.tsx                  the four figures above the tabs
+  frames.ts                      plot frame shapes, shared with the empty state
 src/components/theme-toggle.tsx  the light/dark control
 src/lib/chart-setup.ts           Chart.js registration — see §5
 src/lib/fonts.ts                 the two faces — see §4
@@ -413,6 +507,39 @@ It holds paise, matching the `expenses.amount_paise` column it will eventually
 read from, so wiring the database up is a change of source and not a change of
 unit. It does no formatting at all: that belongs to `src/lib/money.ts`.
 
+### The app icon
+
+The masthead band at 32px: a flat block of `--bar` with **U+20B9 knocked out in
+`--on-bar`**. No radius, no shadow, no gradient — §2 rule 1 applies to a 16px
+tile as much as to a page.
+
+The glyph is Anton's, outlined from the shipped woff2 and inlined as a `<path>`,
+because an SVG favicon cannot load a webfont. That is the same argument §4 makes
+for the page: Anton was chosen over Archivo Black **because it carries the rupee
+sign**, so the mark and the headline figures are the same ₹.
+
+`--bar` and not a slot hue, on purpose. Slot colour is identity (§2 rule 3) —
+slot 0 is Food — so an app mark painted in one would say this app is about Food.
+`--bar` is chrome, and it is the surface that deliberately stays dark in *both*
+themes, which is also what makes the tile read on a light and a dark tab strip
+alike.
+
+Three files, one mark. `icon.svg` carries both token pairs behind a
+`prefers-color-scheme` query and is what modern browsers use; `favicon.ico` and
+`apple-icon.png` are rasterised from the **light** pair, because a static image
+cannot follow a theme. They are regenerated together — if the `--bar` or
+`--on-bar` values ever move, all three move.
+
+> Two traps, both of which cost a debugging round here:
+>
+> - **A double hyphen is illegal inside an XML comment.** Writing a token name
+>   in a comment in `icon.svg` makes the file fail to parse, and a favicon that
+>   fails to parse fails *silently*. The comments in that file spell the tokens
+>   without the leading dashes for exactly this reason.
+> - **Next's ICO decoder rejects RGB.** A `.ico` whose embedded PNGs are not
+>   **RGBA** does not degrade to a missing icon — it throws at build and every
+>   route 500s.
+
 ---
 
 ## 9. Checklist before you commit a visual change
@@ -430,3 +557,7 @@ and by eye, in **both** themes:
 - [ ] the daily/weekly toggle re-derives labels, values *and* annotations
 - [ ] every new colour came from a token, not a hex typed inline
 - [ ] every new number in prose is derived from the data, not asserted
+- [ ] no `px` size that is not a drawn line — see §7 Units
+- [ ] nothing clips at the *narrow* end of its own band. A figure that fits at
+      1360px can still overflow at 1024px, because the column is a fraction of
+      the page while a `vw` or fixed size is not

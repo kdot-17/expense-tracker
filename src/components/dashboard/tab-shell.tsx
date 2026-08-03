@@ -16,7 +16,7 @@
 
 import { useRef, useState } from "react";
 
-const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
+const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
 
 export type TabDef = { id: string; label: string; panel: React.ReactNode };
 

@@ -39,8 +39,8 @@ export function ThemeToggle() {
             // block, the same figure/ground move the masthead itself makes.
             className={
               active
-                ? "bg-on-bar text-bar px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase"
-                : "text-on-bar px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase"
+                ? "bg-on-bar text-bar px-2.5 py-1 text-micro font-semibold tracking-[0.16em] uppercase"
+                : "text-on-bar px-2.5 py-1 text-micro font-semibold tracking-[0.16em] uppercase"
             }
           >
             {option.label}

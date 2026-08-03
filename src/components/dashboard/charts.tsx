@@ -18,6 +18,7 @@ import { slotOf, subtypeLabel } from "@/lib/taxonomy";
 import { useTheme } from "@/lib/theme";
 
 import { EmptyPlot } from "./empty";
+import { BAR_FRAME, LINE_FRAME } from "./frames";
 
 type Fonts = { bodyFont: string; displayFont: string };
 
@@ -62,12 +63,108 @@ function tooltipStyle(P: Palette, bodyFont: string) {
     cornerRadius: 0,
     padding: 10,
     displayColors: false,
-    titleFont: { family: bodyFont, size: 12, weight: 700 as const },
-    bodyFont: { family: bodyFont, size: 13 },
+    titleFont: { family: bodyFont, size: remPx(AXIS_NAME_REM), weight: 700 as const },
+    bodyFont: { family: bodyFont, size: remPx(TOOLTIP_BODY_REM) },
   };
 }
 
-const MICRO = "text-[10px] font-semibold uppercase tracking-[0.18em] text-muted";
+const MICRO = "text-micro font-semibold uppercase tracking-[0.18em] text-muted";
+
+/**
+ * A canvas has no CSS, so the responsive rules have to be arithmetic here.
+ */
+/** Gap between a bar's end and its value, in rem so it follows the reader. */
+const VALUE_OFFSET_REM = 0.625;
+/** The most of the plot the value column may take, however long the figures. */
+const VALUE_GUTTER_MAX = 0.24;
+/** Legibility floor and ceiling, in rem — never px, so they follow the reader. */
+const VALUE_FONT_MIN_REM = 0.6875;
+const VALUE_FONT_MAX_REM = 0.9375;
+
+/** The root font size in px — the bridge from the CSS rem world to the canvas. */
+function rootFontPx(): number {
+  if (typeof document === "undefined") return 16;
+  return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+}
+
+/**
+ * Canvas type, expressed in rem and resolved to px at draw time, so the charts
+ * follow the reader's browser font setting exactly as the markup does. Chart.js
+ * only accepts a number, which is why this conversion has to be explicit.
+ */
+const remPx = (rem: number) => Math.round(rem * rootFontPx());
+
+/** Matches the --text-tick / --text-meta / --text-note steps in globals.css. */
+const TICK_REM = 0.6875;
+const AXIS_NAME_REM = 0.75;
+const TOOLTIP_BODY_REM = 0.8125;
+
+/** The bits of a Chart.js chart the value column needs, and nothing else. */
+type Plot = {
+  width: number;
+  ctx: CanvasRenderingContext2D;
+  data: { datasets: { data: unknown[] }[] };
+};
+
+/**
+ * The value column past the end of the bars: how wide it has to be, what size
+ * its type can be, and the labels themselves — one function, because the space
+ * *reserved* and the space *drawn into* have to be the same number, and two
+ * functions agreeing by convention is how they stop agreeing.
+ *
+ * Measured from the widest figure rather than taken as a share of the plot. A
+ * share is right at exactly one width: reserving 24% hands a full-bleed plot
+ * 229px for a 75px figure, which loses an eighth of the canvas and shortens
+ * every bar with it. So ask the text what it needs, and cap that, so a long
+ * figure cannot eat a narrow plot instead. Only when the cap bites does the
+ * type shrink — which is the case that used to clip.
+ *
+ * Labels come off the `chart` argument, never a closure: an inline plugin is
+ * captured once at construction (design-system §5.2) and a closed-over array
+ * would still be the first render's numbers.
+ */
+function valueColumn(plot: Plot, family: string) {
+  const raw = plot.data.datasets[0]?.data ?? [];
+  const root = rootFontPx();
+  const max = VALUE_FONT_MAX_REM * root;
+  const min = VALUE_FONT_MIN_REM * root;
+  const offset = remPx(VALUE_OFFSET_REM);
+  const cap = plot.width * VALUE_GUTTER_MAX;
+
+  const widestAt = (labels: string[], px: number) => {
+    const before = plot.ctx.font;
+    plot.ctx.font = `400 ${px}px ${family}`;
+    const w = labels.reduce((m, label) => Math.max(m, plot.ctx.measureText(label).width), 0);
+    plot.ctx.font = before;
+    return w;
+  };
+
+  // Exact first, abbreviated only if exact cannot be made to fit. Shrinking is
+  // bounded below — an unreadable figure is no better than a clipped one — so
+  // on a phone the widest amount the schema can hold still runs past the cap at
+  // the floor. That is the case the compact form exists for, the same split the
+  // treemap and the calendar make: `₹214.7L` is honest, `₹2,14,74,8` is a
+  // different number. The exact amount is always in the tooltip.
+  for (const format of [formatPaise, formatPaiseCompact]) {
+    const labels = raw.map((value) => format(Number(value ?? 0)));
+    const widest = widestAt(labels, max);
+    if (offset + widest <= cap || widest === 0) {
+      return { labels, offset, gutter: Math.ceil(offset + widest), fontPx: max };
+    }
+    const fontPx = Math.max(min, Math.floor(max * ((cap - offset) / widest)));
+    if (widestAt(labels, fontPx) <= cap - offset) {
+      return { labels, offset, gutter: Math.ceil(cap), fontPx };
+    }
+  }
+
+  // Compact at the floor: shorter than anything `amount_paise` can reach.
+  return {
+    labels: raw.map((value) => formatPaiseCompact(Number(value ?? 0))),
+    offset,
+    gutter: Math.ceil(cap),
+    fontPx: min,
+  };
+}
 
 const share = (part: number, whole: number) =>
   whole === 0 ? "0.0" : ((part / whole) * 100).toFixed(1);
@@ -80,23 +177,39 @@ export function VerticalPie({ bodyFont, displayFont, fill = false }: Fonts & Fil
   const total = totalSpendPaise();
 
   return (
+    // `flex-wrap` with a real basis on the legend, so when the row cannot hold
+    // both the legend drops beneath the pie instead of being crushed. It used
+    // to keep its place and surrender its width: at a 7/12 column the name
+    // column collapsed to a few pixels and every group read as an ellipsis.
+    //
+    // `fill` cannot wrap — the board deals this tile one fixed-height cell, and
+    // a legend dropping beneath the pie would simply be clipped by it. There
+    // the pie takes its size from the row height instead of the row width, and
+    // the legend keeps the remainder with a scroll box of its own.
     <div
       className={
         fill
-          ? // `items-stretch`, not `items-center`. Centring makes the legend
-            // size to its content and overflow both ends of a shorter cell,
-            // and its own `overflow-y-auto` never engages because nothing
-            // constrains its height — ten rows clipped top and bottom, with no
-            // way to scroll to either.
-            "flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:items-stretch"
-          : "flex flex-col gap-6 lg:flex-row lg:items-center"
+          ? "flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:items-stretch"
+          : "flex flex-col gap-6 lg:flex-row lg:flex-wrap lg:items-center"
       }
     >
+      {/* A pie is circular, so its frame is square at every width. In the
+          document it takes a share of the row, capped once it is as big as it
+          needs to be; on the board it is squared off the cell's height, which
+          is the only dimension that is fixed there. */}
+      {/* All three bounds have to be live, and the share is what sets that. At
+          45% the pie grows from its 17.5rem floor to its 20rem cap across the
+          `lg` range: 45% of the 7/12 column is 242px at 1024px (floored to
+          280px, and the legend wraps underneath — which is what `flex-wrap` is
+          there for) and 330px at the 85rem page cap, where the 20rem cap takes
+          over at 320px. A smaller share never reaches the cap at any viewport,
+          which pins the pie to its floor and leaves it *smaller* on a desktop
+          than on a phone, where it is already 320px. */}
       <div
-        className={`relative w-full min-h-0 min-w-0 shrink-0 ${
+        className={`relative aspect-square min-h-0 min-w-0 shrink-0 ${
           fill
-            ? `flex-1 ${FLOOR} lg:h-full lg:w-[40%] lg:flex-none`
-            : "h-[260px] sm:h-[320px] lg:w-[320px]"
+            ? `w-full ${FLOOR} lg:h-full lg:w-auto`
+            : "w-full max-w-[20rem] lg:w-[45%] lg:min-w-[17.5rem]"
         }`}
       >
         {total === 0 ? (
@@ -154,7 +267,7 @@ export function VerticalPie({ bodyFont, displayFont, fill = false }: Fonts & Fil
 
       {/* The legend is the table. It stands on its own with no chart. */}
       <ol
-        // In fill mode the list genuinely scrolls — ten rows in a cell that
+        // On the board the list genuinely scrolls — ten rows in a cell that
         // holds about eight — so it needs the same treatment as the ledger's
         // scroll box: a scroll container nothing can focus is unreachable by
         // keyboard, and the verticals below the fold simply cannot be read.
@@ -166,7 +279,7 @@ export function VerticalPie({ bodyFont, displayFont, fill = false }: Fonts & Fil
             }
           : {})}
         className={`border-rule min-w-0 flex-1 border-t-2 ${
-          fill ? "min-h-0 overflow-y-auto" : ""
+          fill ? "min-h-0 overflow-y-auto" : "basis-[18rem]"
         }`}
       >
         {verticals.map((entry, i) => (
@@ -196,7 +309,7 @@ export function VerticalPie({ bodyFont, displayFont, fill = false }: Fonts & Fil
               // A name that still has to truncate at the narrowest board width
               // stays recoverable rather than simply being lost.
               title={entry.vertical}
-              className="text-ink min-w-0 flex-1 truncate text-[13px] font-medium"
+              className="text-ink text-note min-w-0 flex-1 truncate font-medium"
             >
               {entry.vertical}
             </span>
@@ -204,13 +317,13 @@ export function VerticalPie({ bodyFont, displayFont, fill = false }: Fonts & Fil
                 yet" plot would assert we checked and the vertical is empty. We
                 did not check anything. */}
             <span
-              className="text-ink shrink-0 text-[15px] tabular-nums"
+              className="text-ink text-lede shrink-0 tabular-nums"
               style={{ fontFamily: displayFont }}
             >
               {total === 0 ? "—" : formatPaise(entry.amountPaise)}
             </span>
             {fill ? null : (
-              <span className="text-ink-2 w-12 shrink-0 text-right text-[12px] tabular-nums">
+              <span className="text-ink-2 text-meta w-12 shrink-0 text-right tabular-nums">
                 {total === 0 ? "" : `${share(entry.amountPaise, total)}%`}
               </span>
             )}
@@ -255,7 +368,7 @@ export function SpendLine({ bodyFont, fill = false }: Fonts & Fillable) {
                 type="button"
                 onClick={() => setGrain(option)}
                 aria-pressed={active}
-                className={`border-rule -ml-0.5 border-2 px-4 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase focus-visible:relative focus-visible:z-10 ${
+                className={`border-rule text-tick -ml-0.5 border-2 px-4 py-1.5 font-semibold tracking-[0.18em] uppercase focus-visible:relative focus-visible:z-10 ${
                   active ? "bg-rule text-page" : "text-ink bg-transparent"
                 }`}
               >
@@ -269,7 +382,7 @@ export function SpendLine({ bodyFont, fill = false }: Fonts & Fillable) {
       {hasData ? (
         <div
           className={`border-rule bg-card relative w-full min-h-0 min-w-0 border-2 p-2 ${
-            fill ? `flex-1 ${FLOOR}` : "h-[280px] sm:h-[340px]"
+            fill ? `flex-1 ${FLOOR}` : LINE_FRAME
           }`}
         >
           <Line
@@ -328,7 +441,7 @@ export function SpendLine({ bodyFont, fill = false }: Fonts & Fillable) {
                   border: { color: P.rule, width: 2 },
                   ticks: {
                     color: P.muted,
-                    font: { family: bodyFont, size: 11 },
+                    font: { family: bodyFont, size: remPx(TICK_REM) },
                     maxRotation: 0,
                     autoSkipPadding: 10,
                   },
@@ -339,7 +452,7 @@ export function SpendLine({ bodyFont, fill = false }: Fonts & Fillable) {
                   border: { color: P.rule, width: 2 },
                   ticks: {
                     color: P.muted,
-                    font: { family: bodyFont, size: 11 },
+                    font: { family: bodyFont, size: remPx(TICK_REM) },
                     maxTicksLimit: 5,
                     callback: (value) => formatPaiseCompact(Number(value)),
                   },
@@ -368,7 +481,7 @@ export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fil
   if (subtypes.length === 0) {
     return (
       <EmptyPlot
-        className={fill ? `min-h-0 flex-1 ${FLOOR}` : "h-[340px] sm:h-[400px]"}
+        className={fill ? `min-h-0 flex-1 ${FLOOR}` : BAR_FRAME}
         label="No subtypes yet"
       />
     );
@@ -378,7 +491,7 @@ export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fil
     <div className={fill ? "flex min-h-0 flex-1 flex-col gap-3" : "flex flex-col gap-4"}>
       <div
         className={`border-rule bg-card relative w-full min-h-0 min-w-0 border-2 p-2 ${
-          fill ? `flex-1 ${FLOOR}` : "h-[340px] sm:h-[400px]"
+          fill ? `flex-1 ${FLOOR}` : BAR_FRAME
         }`}
       >
         <Bar
@@ -409,9 +522,18 @@ export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fil
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
-            // Room for the value drawn past the end of each bar. Sized for a
-            // full paise figure — `₹1,23,456.78`, not `₹1,23,457`.
-            layout: { padding: { right: 92 } },
+            // Room for the value drawn past the end of each bar — exactly what
+            // the widest figure measures, capped. This chart is a 5/12 column
+            // at lg and full width below it, and neither a fixed pixel count
+            // nor a fixed share is right at both: the first clips the narrow
+            // one, the second strands a quarter of the wide one. `barValues`
+            // below reserves through the same function, so the two cannot
+            // disagree by construction rather than by agreement.
+            layout: {
+              padding: (ctx) => ({
+                right: ctx.chart ? valueColumn(ctx.chart, displayFont).gutter : 0,
+              }),
+            },
             plugins: {
               legend: { display: false }, // named swatches sit under the chart
               tooltip: {
@@ -431,7 +553,7 @@ export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fil
                 border: { color: P.rule, width: 2 },
                 ticks: {
                   color: P.muted,
-                  font: { family: bodyFont, size: 11 },
+                  font: { family: bodyFont, size: remPx(TICK_REM) },
                   maxTicksLimit: 5,
                   callback: (value) => formatPaiseCompact(Number(value)),
                 },
@@ -441,7 +563,7 @@ export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fil
                 border: { color: P.rule, width: 2 },
                 ticks: {
                   color: P.ink,
-                  font: { family: bodyFont, size: 12, weight: 700 },
+                  font: { family: bodyFont, size: remPx(AXIS_NAME_REM), weight: 700 },
                 },
               },
             },
@@ -451,15 +573,18 @@ export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fil
               id: "barValues",
               afterDatasetsDraw(chart) {
                 const meta = chart.getDatasetMeta(0);
-                const raw = chart.data.datasets[0]?.data ?? [];
                 const { ctx } = chart;
+                // The same call `layout.padding` made, so the figure is drawn
+                // into precisely the column that was reserved for it.
+                const { labels, offset, fontPx } = valueColumn(chart, displayFont);
+
                 ctx.save();
                 ctx.fillStyle = P.ink;
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
-                ctx.font = `400 13px ${displayFont}`;
+                ctx.font = `400 ${fontPx}px ${displayFont}`;
                 meta.data.forEach((bar, i) => {
-                  ctx.fillText(formatPaise(Number(raw[i] ?? 0)), bar.x + 10, bar.y + 1);
+                  ctx.fillText(labels[i] ?? "", bar.x + offset, bar.y + 1);
                 });
                 ctx.restore();
               },

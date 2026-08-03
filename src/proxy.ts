@@ -33,5 +33,11 @@ export const config = {
   // Without a matcher this would also run on CSS, JS and images and block them
   // from loading. Auth still wants coverage of every real route, so exclude
   // only the static asset paths.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  //
+  // The app icons are three separate routes, not one: `favicon.ico`, `icon.svg`
+  // and `apple-icon.png` are each emitted by the metadata file convention. All
+  // three have to be reachable signed *out*, because the page that needs them
+  // most is the login page — gate them and the tab falls back to a blank sheet,
+  // and "add to home screen" from the login page gets nothing at all.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png).*)"],
 };

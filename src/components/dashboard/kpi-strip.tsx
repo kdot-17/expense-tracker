@@ -20,7 +20,7 @@ import {
 import { formatPaise } from "@/lib/money";
 import { slotOf } from "@/lib/taxonomy";
 
-const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
+const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
 const DASH = "—";
 
 function Stat({
@@ -36,7 +36,11 @@ function Stat({
   swatchSlot?: number;
 }) {
   return (
-    <div className="border-rule bg-card min-w-0 border-2 px-3 py-2">
+    // `@container`: a stat tile is a quarter of the row at `lg` and a half
+    // below it, so `--text-kpi` measures the tile rather than the viewport —
+    // the same reason the masthead's total does. Without a container the `cqi`
+    // falls back to the viewport, which is degraded but not broken.
+    <div className="border-rule bg-card @container min-w-0 border-2 px-3 py-2">
       <p className={`${MICRO} text-muted truncate`}>{label}</p>
       <p className="mt-1 flex items-center gap-2">
         {swatchSlot === undefined ? null : (
@@ -46,13 +50,11 @@ function Stat({
             style={{ background: `var(--slot-${swatchSlot})` }}
           />
         )}
-        <span
-          className="font-display min-w-0 truncate text-[clamp(1.1rem,2vw,1.7rem)] leading-none tabular-nums"
-        >
+        <span className="font-display text-kpi min-w-0 truncate leading-none tabular-nums">
           {value}
         </span>
       </p>
-      <p className="text-ink-2 mt-1 truncate text-[11px]">{detail ?? " "}</p>
+      <p className="text-ink-2 text-tick mt-1 truncate">{detail ?? " "}</p>
     </div>
   );
 }
