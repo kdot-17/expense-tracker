@@ -40,4 +40,8 @@ Before any change is considered done, all four gates must pass:
 npm run verify     # typecheck + lint + palette + build
 ```
 
+`npm run palette` is not optional — it validates both colour themes and
+cross-checks `globals.css` against `src/lib/palette.ts`, which is the only thing
+stopping the two files drifting apart.
+
 Pull requests target the `trunk` branch. There is no `main` branch.

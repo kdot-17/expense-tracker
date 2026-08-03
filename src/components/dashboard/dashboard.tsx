@@ -1,16 +1,18 @@
 import { CalendarBlock } from "@/components/dashboard/calendar";
-import { GroupPie, MerchantBars, SpendLine } from "@/components/dashboard/charts";
+import { SpendLine, SubtypeBars, VerticalPie } from "@/components/dashboard/charts";
 import { Ledger } from "@/components/dashboard/ledger";
 import { Treemap } from "@/components/dashboard/treemap";
 import { VersusPrevious } from "@/components/dashboard/versus-previous";
-import { body, display } from "@/lib/fonts";
-import { formatPaise } from "@/lib/money";
 import {
   DAYS_IN_MONTH,
   MONTH_LABEL,
   PREVIOUS_MONTH_TOTAL_PAISE,
   stats,
-} from "@/lib/transactions";
+  verticalVsPrevious,
+} from "@/lib/expenses";
+import { body, display } from "@/lib/fonts";
+import { formatPaise } from "@/lib/money";
+import { VERTICAL_ORDER } from "@/lib/taxonomy";
 
 const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
 const DASH = "—";
@@ -41,36 +43,21 @@ function SectionHead({
 
 export function Dashboard() {
   const s = stats();
-  const hasData = s.debits > 0;
+  const hasData = s.count > 0;
   const hasPrevious = PREVIOUS_MONTH_TOTAL_PAISE > 0;
+  // A month total is enough for the headline percentage but not for the
+  // per-vertical strip, so the two are asked separately rather than one being
+  // assumed from the other.
+  const hasVerticalHistory = verticalVsPrevious() !== null;
+
+  // Derived, never typed as a literal — a hardcoded "ten verticals" in prose
+  // goes stale the first time one is archived.
+  const verticalCount = VERTICAL_ORDER.length;
 
   // Chart.js paints to a canvas, so it needs the resolved family name — a CSS
   // variable means nothing to it. next/font gives us that at build time.
   const displayFont = display.style.fontFamily;
   const bodyFont = body.style.fontFamily;
-
-  const rail = [
-    {
-      label: "Median day",
-      value: hasData ? formatPaise(s.medianDayPaise) : DASH,
-      note: "Across the days money actually moved.",
-    },
-    {
-      label: "Busiest day",
-      value: s.busiestDay ? String(s.busiestDay) : DASH,
-      note: "The single heaviest day of the month.",
-    },
-    {
-      label: "Largest debit",
-      value: s.largest ? formatPaise(s.largest.amountPaise) : DASH,
-      note: s.largest ? s.largest.merchant : "No transactions recorded.",
-    },
-    {
-      label: "Quiet days",
-      value: hasData ? String(s.quietDays) : DASH,
-      note: `Days out of ${DAYS_IN_MONTH} with nothing on them.`,
-    },
-  ];
 
   return (
     <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-10 px-4 py-8 sm:px-6 lg:gap-14 lg:px-10 lg:py-12">
@@ -84,7 +71,8 @@ export function Dashboard() {
             money went
           </h1>
           <p className="text-ink-2 mt-5 max-w-[52ch] text-[14px] leading-relaxed sm:text-[15px]">
-            Every debit for the month, grouped seven ways and shown to scale.
+            Every expense for the month, filed under {verticalCount} verticals and
+            shown to scale.
           </p>
         </div>
 
@@ -93,10 +81,25 @@ export function Dashboard() {
           style={{ background: "var(--slot-0)", color: "var(--on-0)" }}
         >
           <div>
-            <p className={MICRO}>Total debited</p>
-            <p className="font-display mt-2 text-[clamp(3rem,11vw,5.6rem)] leading-[0.82] tracking-[-0.02em] tabular-nums">
-              {formatPaise(s.totalPaise)}
-            </p>
+            <p className={MICRO}>Total spent</p>
+            {/* Not `₹0`. Nothing recorded means we do not know what was spent,
+                which is a different claim from knowing it was nothing — and
+                this is the largest number on the page to be wrong about. The
+                count below it stays a real 0: that one is a fact about how many
+                expenses exist, not about how much money moved. */}
+            {hasData ? (
+              <p className="font-display mt-2 text-[clamp(3rem,11vw,5.6rem)] leading-[0.82] tracking-[-0.02em] tabular-nums">
+                {formatPaise(s.totalPaise)}
+              </p>
+            ) : (
+              // The em dash is not set at headline size. Anton renders it as a
+              // long flat bar, and at 5.6rem that reads as a broken glyph
+              // rather than as "no value yet".
+              <p className="font-display mt-3 text-[2rem] leading-none">
+                {DASH}
+                <span className="sr-only">No total yet</span>
+              </p>
+            )}
           </div>
 
           <dl
@@ -117,8 +120,8 @@ export function Dashboard() {
               </dd>
             </div>
             <div>
-              <dt className={MICRO}>Debits</dt>
-              <dd className="font-display text-[22px] tabular-nums">{s.debits}</dd>
+              <dt className={MICRO}>Expenses</dt>
+              <dd className="font-display text-[22px] tabular-nums">{s.count}</dd>
               <dd className="text-[12px]">
                 {s.activeDays} of {DAYS_IN_MONTH} days active
               </dd>
@@ -126,23 +129,6 @@ export function Dashboard() {
           </dl>
         </div>
       </header>
-
-      {/* ----------------------------------------------------------- rail -- */}
-      <section className="border-rule bg-card grid grid-cols-2 border-2 lg:grid-cols-4">
-        {rail.map((cell) => (
-          <div
-            key={cell.label}
-            className="flex flex-col gap-1 p-4 sm:p-5"
-            style={{ outline: "2px solid var(--rule)", outlineOffset: "-1px" }}
-          >
-            <span className={`${MICRO} text-muted`}>{cell.label}</span>
-            <span className="font-display text-[clamp(1.6rem,4.4vw,2.4rem)] leading-none tracking-[-0.01em] tabular-nums">
-              {cell.value}
-            </span>
-            <span className="text-ink-2 text-[12px] leading-snug">{cell.note}</span>
-          </div>
-        ))}
-      </section>
 
       {/* -------------------------------------------------------- verdict -- */}
       {/* The full-bleed statement block: it carries the month's headline finding
@@ -154,7 +140,7 @@ export function Dashboard() {
         <p className="mt-6 max-w-[62ch] text-[14px] leading-relaxed opacity-90">
           {hasData
             ? "The headline finding for the month goes here."
-            : "No account is connected. Once transactions land, this block carries the month's headline finding — what moved, and against what."}
+            : "No expenses have been recorded. Once they land, this block carries the month's headline finding — what moved, and against what."}
         </p>
       </section>
 
@@ -163,7 +149,7 @@ export function Dashboard() {
         <SectionHead
           index="01"
           title="Every rupee, to scale"
-          note="Area is amount. The ten categories nest inside the seven frozen groups: one colour is one group, and the wide gutters mark where a group ends. Packed by size, never sorted by colour."
+          note={`Area is amount. Subtypes nest inside the ${verticalCount} verticals they belong to: one colour is one vertical, and the wide gutters mark where a vertical ends. Packed by size, never sorted by colour.`}
         />
         <Treemap ratio={1.85} className="hidden md:block" />
         <Treemap ratio={0.78} className="md:hidden" compact />
@@ -174,10 +160,10 @@ export function Dashboard() {
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-7">
           <SectionHead
             index="02"
-            title="Seven slots, fixed order"
-            note="Rent sits at twelve o'clock every month, so the shape is comparable month to month. Slots never re-sort by size."
+            title="The verticals, fixed order"
+            note="Food sits at twelve o'clock every month, so the shape is comparable month to month. Verticals never re-sort by size, and the numbered table carries every figure on its own."
           />
-          <GroupPie bodyFont={bodyFont} displayFont={displayFont} />
+          <VerticalPie bodyFont={bodyFont} displayFont={displayFont} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
@@ -185,9 +171,9 @@ export function Dashboard() {
             index="03"
             title="Against last month"
             note={
-              hasPrevious
-                ? "Signed rupees across the same seven groups on one shared zero line. Bars scale to the largest move in either direction."
-                : "Signed rupees across the same seven groups on one shared zero line, once there is a prior month to compare against."
+              hasVerticalHistory
+                ? "Signed rupees across the same verticals on one shared zero line. Bars scale to the largest move in either direction."
+                : "Signed rupees across the same verticals on one shared zero line, once there is a prior month to compare against."
             }
           />
           <VersusPrevious />
@@ -212,29 +198,29 @@ export function Dashboard() {
             note={
               hasData
                 ? "One block per day on a single-hue ramp, Monday start. Days with nothing on them are struck out rather than shaded, so absence reads as absence."
-                : "One block per day, Monday start. Once transactions land, each day shades on a single-hue ramp and genuinely empty days are struck out."
+                : "One block per day, Monday start. Once expenses land, each day shades on a single-hue ramp and genuinely empty days are struck out."
             }
           />
           <CalendarBlock />
         </div>
       </section>
 
-      {/* --------------------------------------------- merchants + ledger -- */}
+      {/* --------------------------------------------- subtypes + ledger -- */}
       <section className="grid gap-10 lg:grid-cols-12 lg:gap-8">
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
           <SectionHead
             index="06"
-            title="Who took it"
-            note="The largest merchants of the month. Rent and investment transfers are excluded — they are not merchants, and on the same axis they would flatten everything else."
+            title="Where it actually went"
+            note="The largest subtypes of the month, coloured by the vertical each belongs to. Nothing is held back — an EMI will tower over a coffee, and that is the real shape of the month."
           />
-          <MerchantBars bodyFont={bodyFont} displayFont={displayFont} />
+          <SubtypeBars bodyFont={bodyFont} displayFont={displayFont} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-5 lg:col-span-7">
           <SectionHead
             index="07"
             title="The ledger"
-            note="Every debit, in date order. A heavy rule opens each new day."
+            note="Every expense, in date order. A heavy rule opens each new day."
           />
           <Ledger />
         </div>

@@ -1,5 +1,5 @@
+import { byVertical, verticalVsPrevious } from "@/lib/expenses";
 import { formatPaise } from "@/lib/money";
-import { byGroup, groupVsPrevious, PREVIOUS_MONTH_TOTAL_PAISE } from "@/lib/transactions";
 
 import { EmptyPlot } from "./empty";
 
@@ -9,16 +9,16 @@ import { EmptyPlot } from "./empty";
  * signed number both carry the sign, so the colour is only ever identity.
  */
 export function VersusPrevious() {
-  // Without a prior month every delta is 0, and the rows would read "no change"
-  // and "identical to last month" — a comparison against a month that does not
-  // exist. The header already says "No prior month on file"; say the same here.
-  if (PREVIOUS_MONTH_TOTAL_PAISE <= 0) {
+  const deltas = verticalVsPrevious();
+  // Null means there is no per-vertical history, which is not the same as ten
+  // verticals that each happened to move by zero. Drawing the second when we
+  // have the first is the bug this guard exists for.
+  if (deltas === null) {
     return <EmptyPlot label="No prior month on file" />;
   }
 
-  const deltas = groupVsPrevious();
-  const groups = byGroup();
-  // Floored at 1: a real month where every group moved by exactly zero would
+  const verticals = byVertical();
+  // Floored at 1: a real month where every vertical moved by exactly zero would
   // otherwise divide by zero and size every bar NaN.
   const max = Math.max(1, ...deltas.map((entry) => Math.abs(entry.deltaPaise)));
 
@@ -41,9 +41,9 @@ export function VersusPrevious() {
 
           return (
             <li
-              key={entry.group}
+              key={entry.vertical}
               className="grid grid-cols-[96px_minmax(0,1fr)_76px] items-center gap-2 border-b border-grid py-2 sm:grid-cols-[168px_minmax(0,1fr)_92px] sm:gap-3"
-              title={`${entry.group}: ${formatPaise(groups[i].amountPaise)} this month, ${
+              title={`${entry.vertical}: ${formatPaise(verticals[i].amountPaise)} this month, ${
                 flat
                   ? "identical to last month"
                   : `${up ? "+" : "−"}${formatPaise(Math.abs(entry.deltaPaise))} on last month`
@@ -56,7 +56,7 @@ export function VersusPrevious() {
                   style={{ background: `var(--slot-${i})` }}
                 />
                 <span className="min-w-0 text-[11px] leading-tight font-medium break-words text-ink sm:text-[13px]">
-                  {entry.group}
+                  {entry.vertical}
                 </span>
               </span>
 
