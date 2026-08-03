@@ -184,19 +184,19 @@ export function byDayPaise(): number[] {
 }
 
 /** Calendar weeks, Monday start, so a partial first week stays partial. */
-export function byWeek(): { label: string; amountPaise: number; days: number[] }[] {
+export function byWeek(): { label: string; amountPaise: number; daysPaise: number[] }[] {
   const daily = byDayPaise();
-  const weeks: { label: string; amountPaise: number; days: number[] }[] = [];
+  const weeks: { label: string; amountPaise: number; daysPaise: number[] }[] = [];
   let cursor = 0;
   let index = 0;
 
   while (cursor < DAYS_IN_MONTH) {
     const span = index === 0 ? 7 - FIRST_WEEKDAY : 7;
-    const days = daily.slice(cursor, cursor + span);
+    const daysPaise = daily.slice(cursor, cursor + span);
     weeks.push({
       label: `${cursor + 1}–${Math.min(cursor + span, DAYS_IN_MONTH)}`,
-      amountPaise: days.reduce((sum, value) => sum + value, 0),
-      days,
+      amountPaise: daysPaise.reduce((sum, value) => sum + value, 0),
+      daysPaise,
     });
     cursor += span;
     index += 1;

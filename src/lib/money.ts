@@ -89,5 +89,10 @@ const THOUSAND_IN_PAISE = 1_00_000;
 export function formatPaiseCompact(paise: number): string {
   if (paise >= LAKH_IN_PAISE) return `₹${(paise / LAKH_IN_PAISE).toFixed(1)}L`;
   if (paise >= THOUSAND_IN_PAISE) return `₹${(paise / THOUSAND_IN_PAISE).toFixed(1)}k`;
-  return `₹${Math.round(toRupees(paise))}`;
+
+  // Round to rupees, then re-test the thousand mark. ₹999.60 rounds to 1000,
+  // which would otherwise print a bare "₹1000" one paisa below the value that
+  // prints "₹1.0k" — and inside the band the calendar key calls "< ₹1k".
+  const rupees = Math.round(toRupees(paise));
+  return rupees >= 1000 ? `₹${(rupees / 1000).toFixed(1)}k` : `₹${rupees}`;
 }

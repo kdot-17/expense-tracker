@@ -132,9 +132,10 @@ and the ledger carries all of them in full.
   nowhere else. Never feed a divided value back into arithmetic that gets
   stored, and never divide early to "work in rupees for a bit".
 - **Thresholds are paise too.** A cut-off written as `1000` means ₹10, not
-  ₹1,000. `rampStep` in `src/lib/palette.ts` is the live example — its bands are
-  `1_00_000`, `2_00_000`, `3_00_000`, `5_00_000`, and the rupee figures in
-  `RAMP_LABELS` beside it are the same five numbers written for a reader.
+  ₹1,000. `rampStep` in `src/lib/palette.ts` is the live example — four cuts at
+  `1_00_000`, `2_00_000`, `3_00_000` and `5_00_000` paise divide the ramp into
+  five bands, and `RAMP_LABELS` beside it names those same bands in rupees for
+  the reader. Change one list and you must change the other.
 - **Aggregate in paise, format once.** Sum in integers all the way up and call a
   formatter at the point of render. Rounding each row and then adding the
   rounded values is how a total stops matching its own column.

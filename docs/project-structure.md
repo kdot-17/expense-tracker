@@ -4,9 +4,7 @@
 src/
   app/                 Routes and UI (App Router)
     layout.tsx         Root layout: html shell, fonts, metadata
-    page.tsx           /        — the signed-in home page
-    navbar.tsx         App chrome, used by pages rather than the root layout
-    logout-button.tsx  Sign-out form
+    page.tsx           /        — the signed-in dashboard
     login/
       page.tsx         /login
       login-form.tsx   The sign-in form (client component)

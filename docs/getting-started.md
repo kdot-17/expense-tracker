@@ -45,7 +45,7 @@ with the `AUTH_EMAIL` and `AUTH_PASSWORD` you configured.
 | `npm run start` | Serve a production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run palette` | Validates both colour palettes against the six rules |
+| `npm run palette` | Validates both colour palettes, and that `globals.css` and `palette.ts` still agree |
 | `npm run verify` | All four gates: typecheck, lint, palette, build |
 | `npm run db:generate` | Write a migration from schema changes |
 | `npm run db:migrate` | Apply pending migrations |
