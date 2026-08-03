@@ -46,6 +46,17 @@ headers stacked, so the theme toggle and sign-out live inside the band. Sign-out
 is a plain `<form>` posting to the `logout` server action: it needs no
 `"use client"` and works if the client bundle never loads.
 
+The band's right-hand status reads `<month> · closed` or `<month> · in progress`
+from `PERIOD_IS_CLOSED`, never from a literal. It said "closed" unconditionally
+once, which claimed a month was final on its third day.
+
+### SectionHead
+
+Each numbered section is introduced by an index and a title, and nothing else.
+The explanatory paragraph that used to sit under every heading is gone: it
+restated what the chart already showed, and the charts carry their own labels.
+`SectionHead` takes no prose prop, so one cannot be added back by accident.
+
 ### LoginForm
 
 Uses React 19's `useActionState`, which returns `[state, action, pending]` — a
