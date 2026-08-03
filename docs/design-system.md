@@ -201,6 +201,7 @@ font setting outright, so a reader who asks for larger text gets nothing.
 | `text-rail` | one stat-rail cell |
 | `text-section` | a section head's column |
 | `text-statement` | the full-bleed statement band |
+| `text-signin` | the sign-in card |
 | `text-cell-head` / `text-cell-day` / `text-cell-figure` | the calendar grid |
 
 `cqi` is 1% of the **container's** inline size. `vw` is 1% of the viewport, and

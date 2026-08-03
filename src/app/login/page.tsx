@@ -16,8 +16,8 @@ export default async function LoginPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center p-6">
-      <div className="border-rule bg-card w-full max-w-sm border-2 p-6 sm:p-8">
-        <h1 className="font-display text-[clamp(2rem,7vw,3rem)] leading-[0.85] uppercase">
+      <div className="border-rule bg-card @container w-full max-w-sm border-2 p-6 sm:p-8">
+        <h1 className="font-display text-signin leading-[0.85] uppercase">
           Expense
           <br />
           Tracker
