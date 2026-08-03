@@ -31,22 +31,30 @@ being reachable without scrolling. See §7 for what the layout has to guarantee.
 
 ### Reference
 
+One view per row, each shot at the full board so the tabs, the KPI strip and the
+masthead are all in frame. There is no separate masthead shot any more — the
+band is in every one of these.
+
 | Light | Dark |
 |---|---|
-| ![Light masthead](screenshots/light-masthead.jpg) | ![Dark masthead](screenshots/dark-masthead.jpg) |
-| ![Light treemap](screenshots/light-treemap.jpg) | ![Dark treemap](screenshots/dark-treemap.jpg) |
-| ![Light charts](screenshots/light-charts.jpg) | ![Dark charts](screenshots/dark-charts.jpg) |
+| ![Light overview](screenshots/light-overview.jpg) | ![Dark overview](screenshots/dark-overview.jpg) |
+| ![Light breakdown](screenshots/light-breakdown.jpg) | ![Dark breakdown](screenshots/dark-breakdown.jpg) |
+| ![Light ledger](screenshots/light-ledger.jpg) | ![Dark ledger](screenshots/dark-ledger.jpg) |
 
 > Captured against temporary sample data, then reverted, and kept as the
-> **visual reference for what a populated page should look like**. The app ships
-> with no data wired, so the running page shows the same modules in their empty
-> states.
+> **visual reference for what a populated board should look like**. The app
+> ships with no data wired, so the running page shows the same modules in their
+> empty states — which is the one thing these cannot show you.
 >
-> **These predate the board and show the old document layout** — full-bleed
-> sections, poster headings, one module per screenful. Trust them for colour,
-> type and the modules themselves; do not trust them for layout. They are
-> re-shot whenever the palette or the taxonomy changes, and any screenshot
-> showing seven slots or the words "Rent & home" is stale twice over.
+> The sample month is chosen to exercise the cases that have broken before, not
+> to look tidy: a home loan large enough to dominate the treemap, subtypes small
+> enough to fall below the 2% tier where a cell carries a name and no amount,
+> two days with nothing on them so the calendar's struck-out state appears, and
+> a prior month that moves some verticals up and others down.
+>
+> Re-shoot them whenever the palette, the taxonomy or the layout changes. Any
+> screenshot showing seven slots, the words "Rent & home", or a full-bleed
+> section stacked down the page is stale.
 
 Both themes are first-class. Neither is "the real one with a filter over it" —
 the ramp inverts direction, the rules invert polarity, and the categorical hexes
