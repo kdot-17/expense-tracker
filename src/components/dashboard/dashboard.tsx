@@ -158,12 +158,8 @@ export function Dashboard() {
           title="Every rupee, to scale"
           note={`Area is amount. Subtypes nest inside the ${verticalCount} verticals they belong to: one colour is one vertical, and the wide gutters mark where a vertical ends. Packed by size, never sorted by colour.`}
         />
-        {/* The landscape ratio squeezes the smallest categories into slivers a
-            few characters wide, so it only comes in once the frame is wide
-            enough to label them — one breakpoint later than it used to. Between
-            `md` and `lg` the portrait layout is the one that fits. */}
-        <Treemap ratio={1.85} className="hidden lg:block" />
-        <Treemap ratio={0.78} className="lg:hidden" compact />
+        <Treemap ratio={1.85} className="hidden md:block" />
+        <Treemap ratio={0.78} className="md:hidden" compact />
       </section>
 
       {/* ------------------------------------------------ pie + vs. prior -- */}

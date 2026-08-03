@@ -139,7 +139,11 @@ export function VerticalPie({ bodyFont, displayFont }: Fonts) {
       {/* A pie is circular, so its frame is square at every width. It takes a
           share of the row rather than a fixed width, capped once it is as big
           as it needs to be. */}
-      <div className="relative aspect-square w-full max-w-[20rem] min-h-0 min-w-0 shrink-0 lg:w-[38%]">
+      {/* The floor matters as much as the share: a bare 38% of the 7/12 column
+          is 204px at 1024px, which would make the pie *smaller* on a desktop
+          than on a phone. Below the floor the legend wraps underneath instead,
+          which is what `flex-wrap` is there for. */}
+      <div className="relative aspect-square w-full max-w-[20rem] min-h-0 min-w-0 shrink-0 lg:w-[38%] lg:min-w-[17.5rem]">
         {total === 0 ? (
           // A pie of ten zeroes draws nothing at all, which reads as a broken
           // chart rather than an empty one.

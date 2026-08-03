@@ -87,7 +87,9 @@ export function CalendarBlock() {
                 className="text-cell-figure leading-none font-semibold whitespace-nowrap tabular-nums"
                 style={{
                   background: quiet ? "var(--card)" : undefined,
-                  padding: quiet ? "1px 2px" : undefined,
+                  // rem, not px: this inset sits behind type, so it belongs to
+                  // the type's scale rather than to the hatch it sits on.
+                  padding: quiet ? "0.0625rem 0.125rem" : undefined,
                 }}
               >
                 {!known ? "" : quiet ? "NIL" : formatPaiseCompact(paise)}

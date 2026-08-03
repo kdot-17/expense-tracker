@@ -336,7 +336,11 @@ Resolution order: `data-theme` on `<html>` → `prefers-color-scheme` → light.
   - **Stay fluid** — the calendar and treemap have no scroll box. The calendar
     is a `grid-cols-7` of `aspect-square` cells; the treemap is
     percentage-positioned cells in an `aspect-ratio` frame, with a taller ratio
-    swapped in below `lg`. Adding a scroll box to either would defeat this.
+    swapped in below `md`. Adding a scroll box to either would defeat this.
+
+    That swap stays at `md` and not later: the portrait ratio is 0.78, so at a
+    1023px viewport it would stand 1250px tall. Slivers too narrow to label are
+    handled by the `xs` tier dropping their text, not by changing the ratio.
 - Grid children need `min-w-0`. A grid item defaults to `min-width: auto`, so a
   chart canvas or a wide table sets its track's floor at content width and
   pushes the whole page sideways.
