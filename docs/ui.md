@@ -1,69 +1,47 @@
 # UI and styling
 
-## Styling
+## Styling, colour, type, dark mode
 
-Tailwind CSS 4, wired in through PostCSS. There is no `tailwind.config.js` —
-version 4 configures itself from CSS. `src/app/globals.css` is the whole setup:
+**See [`design-system.md`](design-system.md).** It is the authority on all of it.
 
-```css
-@import "tailwindcss";
-```
-
-Theme tokens are declared in an `@theme inline` block, which turns them into
-Tailwind utilities. `--color-background` and `--color-foreground` become
-`bg-background` and `text-foreground`, and the font variables become the default
-sans and mono families.
-
-## Dark mode
-
-Dark mode follows the operating system through `prefers-color-scheme`. There is
-no toggle and no class-based switching — the two custom properties
-`--background` and `--foreground` are redefined inside the media query, and
-everything built on those tokens changes automatically.
-
-Components that need their own dark treatment use Tailwind's `dark:` variants
-directly, as the form fields and buttons do for their borders and hover states.
-
-## Fonts
-
-Geist and Geist Mono, loaded through `next/font/google` in the root layout and
-exposed as `--font-geist-sans` and `--font-geist-mono`. Loading them this way
-means they are self-hosted at build time, so there is no request to Google's
-servers at runtime and no layout shift from a late-arriving font.
+This document used to describe the scaffold's original styling — Geist fonts,
+`--background` / `--foreground` tokens, `prefers-color-scheme`-only dark mode
+with no toggle. None of that is true any more, so rather than leave claims that
+would mislead, that material now lives in one maintained place covering the
+design and its non-negotiables, both validated themes, the frozen categorical
+slots and the `npm run palette` checks that enforce them, the Chart.js rules,
+and how theming resolves.
 
 ## Components
 
 | Component | File | Kind |
 | --- | --- | --- |
 | `RootLayout` | `src/app/layout.tsx` | Server |
-| `Navbar` | `src/app/navbar.tsx` | Server |
-| `LogoutButton` | `src/app/logout-button.tsx` | Server |
+| `Dashboard` | `src/components/dashboard/dashboard.tsx` | Server |
+| `Masthead` / `Colophon` | `src/components/dashboard/masthead.tsx` | Server |
+| `ThemeToggle` | `src/components/theme-toggle.tsx` | Client |
+| `GroupPie` / `SpendLine` / `MerchantBars` | `src/components/dashboard/charts.tsx` | Client |
 | `LoginForm` | `src/app/login/login-form.tsx` | Client |
 
 ### RootLayout
 
-Sets the page title and description, applies the font variables, and makes the
-body a full-height flex column so pages can grow into the available space.
+Sets the page title and description, applies the font variables, injects the
+pre-paint theme bootstrap script, and makes the body a full-height flex column
+so pages can grow into the available space.
 
-### Navbar
+### Masthead
 
-The app heading and a sign-out button. It sits in the page rather than the root
-layout on purpose: the root layout also wraps `/login`, which should not show app
-chrome. Once there is more than one signed-in route, it should move into a shared
-layout for those routes.
-
-### LogoutButton
-
-A plain `<form>` posting to the `logout` server action. It needs no `"use
-client"` and no JavaScript — signing out still works if the client bundle never
-loads.
+The app chrome and the poster's masthead are the same object — a separate navbar
+above a design that already opens with a full-bleed dark band would be two
+headers stacked, so the theme toggle and sign-out live inside the band. Sign-out
+is a plain `<form>` posting to the `logout` server action: it needs no
+`"use client"` and works if the client bundle never loads.
 
 ### LoginForm
 
-The only client component. It uses React 19's `useActionState`, which returns
-`[state, action, pending]` — a three-tuple, unlike React 18's `useFormState`. The
-`pending` value disables the submit button and swaps its label while the action
-is in flight.
+Uses React 19's `useActionState`, which returns `[state, action, pending]` — a
+three-tuple, unlike React 18's `useFormState`. The `pending` value disables the
+submit button and swaps its label while the action is in flight.
 
 Accessibility details worth preserving: the error message carries `role="alert"`
 so it is announced when it appears, and the password field points at it with
@@ -74,7 +52,8 @@ than the browser showing its own first.
 ## Conventions
 
 - Prefer Server Components. Reach for `"use client"` only when something needs
-  browser state or event handlers.
+  browser state or event handlers — in practice that is the theme toggle, the
+  charts (Chart.js needs a canvas) and the login form.
 - Prefer forms posting to server actions over click handlers, so behaviour
   survives without JavaScript.
 - Style with Tailwind utilities inline. Where a class list is long and shared —

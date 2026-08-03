@@ -1,6 +1,6 @@
+import { Dashboard } from "@/components/dashboard/dashboard";
+import { Colophon, Masthead } from "@/components/dashboard/masthead";
 import { verifySession } from "@/lib/dal";
-
-import { Navbar } from "./navbar";
 
 export default async function Home() {
   // Redirects to /login if the session cookie is missing, expired, or forged.
@@ -8,8 +8,9 @@ export default async function Home() {
 
   return (
     <>
-      <Navbar />
-      <main className="flex-1" />
+      <Masthead />
+      <Dashboard />
+      <Colophon />
     </>
   );
 }

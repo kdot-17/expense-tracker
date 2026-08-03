@@ -6,10 +6,9 @@ import { login, type LoginState } from "./actions";
 
 const initialState: LoginState = {};
 
+/** Square, heavy-ruled, no radius — the same field the rest of the app uses. */
 const fieldClasses =
-  "w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none " +
-  "transition focus:border-black/40 focus:ring-2 focus:ring-black/10 " +
-  "dark:border-white/15 dark:bg-white/5 dark:focus:border-white/40 dark:focus:ring-white/10";
+  "border-rule bg-card text-ink w-full border-2 px-3 py-2 text-sm outline-none";
 
 export function LoginForm() {
   // React 19: returns [state, action, pending] and the action receives
@@ -19,7 +18,10 @@ export function LoginForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-sm font-medium">
+        <label
+          htmlFor="email"
+          className="text-[10px] font-semibold tracking-[0.2em] uppercase"
+        >
           Email
         </label>
         <input
@@ -34,7 +36,10 @@ export function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm font-medium">
+        <label
+          htmlFor="password"
+          className="text-[10px] font-semibold tracking-[0.2em] uppercase"
+        >
           Password
         </label>
         <input
@@ -52,7 +57,14 @@ export function LoginForm() {
         <p
           id="login-error"
           role="alert"
-          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400"
+          // Slot 0 is the identity red; the message also says what is wrong, so
+          // colour is never the only carrier.
+          className="border-2 px-3 py-2 text-sm font-medium"
+          style={{
+            borderColor: "var(--slot-0)",
+            background: "var(--slot-0)",
+            color: "var(--on-0)",
+          }}
         >
           {state.error}
         </p>
@@ -61,7 +73,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="mt-1 rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background transition hover:opacity-90 disabled:opacity-60"
+        className="bg-rule text-page mt-1 px-3 py-2.5 text-[11px] font-semibold tracking-[0.2em] uppercase disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

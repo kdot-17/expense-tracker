@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The default is root-relative, so it misses build output nested inside
+    // agent worktrees — which is thousands of generated files, none of it ours.
+    "**/.next/**",
+    ".claude/**",
+    ".agents/**",
   ]),
 ]);
 
