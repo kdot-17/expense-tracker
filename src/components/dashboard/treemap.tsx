@@ -44,19 +44,43 @@ const LABEL_SIZE: Record<Tier, string> = {
   lg: "text-[clamp(1.15rem,2.63cqi,2.1rem)]",
   md: "text-[clamp(0.85rem,1.76cqi,1.4rem)]",
   sm: "text-[clamp(0.65rem,1.19cqi,0.95rem)]",
-  // `xs` alone is sized against its **own cell**, not the frame — the cell
-  // carries `@container` for exactly this. Every other tier is a frame
-  // fraction, which keeps a label's width a fixed share of its cell only while
-  // the clamp is in its `cqi` range; below that the floor holds the type still
-  // as the cell keeps shrinking, and a sliver clips its own name.
-  //
-  // A cell fraction cannot do that. `Credit Card Dues` is the widest label in
-  // the taxonomy at 6.24em of Anton, so at 11% of the cell it occupies 0.69 of
-  // the width it has, whatever that width is. No label clips at any frame size.
-  // It goes illegibly small in a sliver instead, which is the honest failure:
-  // the amount, the name and the share are all in the `title`.
-  xs: "text-[min(0.7rem,11cqi)]",
+  // `xs` is sized per cell, in `xsLabelSize` below, because one size cannot
+  // serve every label — see the note there.
+  xs: "",
 };
+
+/**
+ * Anton's mean uppercase advance, measured from the woff2 that actually ships,
+ * less the -0.03em tracking these labels carry. Deliberately a mean rather than
+ * a per-glyph sum: it slightly over-estimates most names, and over-estimating
+ * only ever picks a smaller size, which is the safe direction.
+ */
+const EM_PER_CHAR = 0.4436;
+
+/** Leaves 8% of the cell as breathing room, since `xs` cells carry no padding. */
+const FILL = 92;
+
+/**
+ * The `xs` label sizes against its **own cell**, which is why the cell carries
+ * `@container`. Every larger tier is a fraction of the *frame*, and that holds
+ * a label at a fixed share of its cell only while the clamp is inside its `cqi`
+ * range. Below that the rem floor holds the type still while the cell keeps
+ * shrinking, the ratio turns over, and a sliver clips its own name.
+ *
+ * The coefficient has to come from the label, not from a constant. A single
+ * cell fraction must serve the longest name in the taxonomy — `Credit Card
+ * Dues`, 6.24em — and anything that fits *that* makes `Rapido` a quarter of the
+ * size it has room for. So each cell solves its own: fill 92% of the width with
+ * the characters it actually has, and never exceed the tier's 0.7rem ceiling.
+ *
+ * The result cannot clip at any frame size, and stays as large as the cell
+ * allows. A true sliver still shrinks past legibility — the name, amount and
+ * share are all in the `title`.
+ */
+function xsLabelSize(label: string): string {
+  const cqi = FILL / (Math.max(label.length, 1) * EM_PER_CHAR);
+  return `min(0.7rem, ${cqi.toFixed(1)}cqi)`;
+}
 
 const AMOUNT_SIZE: Record<Tier, string> = {
   xl: "text-[clamp(2.2rem,6cqi,4.8rem)]",
@@ -71,12 +95,11 @@ const PAD: Record<Tier, string> = {
   lg: "p-[clamp(0.625rem,1.57cqi,1.25rem)]",
   md: "p-[clamp(0.5rem,0.94cqi,0.75rem)]",
   sm: "p-[clamp(0.25rem,0.63cqi,0.5rem)]",
-  // A sliver has almost no room to inset anything. This one stays a fixed rem
-  // rather than a cell fraction because container units on the container
-  // element itself resolve against its *parent*, not itself — so a `cqi`
-  // padding here would measure the frame, not the cell. Half the usual inset
-  // keeps the guarantee above intact down to a ~13px cell.
-  xs: "p-0.5",
+  // No inset at all. A fixed one would be a fixed rem — container units on the
+  // container element resolve against its *parent*, not itself — and in a 25px
+  // cell that eats a third of the width the label is being fitted into. The 8%
+  // `FILL` leaves the breathing room instead, as a share of the cell.
+  xs: "p-0",
 };
 
 function pct(value: number, whole: number): string {
@@ -143,7 +166,12 @@ function Cell({
       <span className="flex flex-col gap-0.5">
         <span
           className={`leading-[0.85] tracking-[-0.03em] uppercase ${LABEL_SIZE[tier]}`}
-          style={{ fontFamily: "var(--font-display)" }}
+          style={{
+            fontFamily: "var(--font-display)",
+            // Inline, because the size is derived from this label's own length
+            // and Tailwind cannot generate a class per subtype name.
+            ...(tier === "xs" ? { fontSize: xsLabelSize(subtype.name) } : {}),
+          }}
         >
           {subtype.name}
         </span>
