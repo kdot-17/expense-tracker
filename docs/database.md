@@ -66,7 +66,7 @@ its vertical.
                                       │ vertical_id
                                       │
   subtypes           ┌────────────────▼────────────────┐
-                     │ id            3                 │
+                     │ id            5                 │
                      │ vertical_id   1                 │
                      │ name          "Swiggy"          │
                      └────────────────┬────────────────┘
@@ -76,7 +76,7 @@ its vertical.
   expenses           ┌────────────────▼────────────────┐
                      │ id            91                │
                      │ vertical_id   1                 │
-                     │ subtype_id    3                 │
+                     │ subtype_id    5                 │
                      │ amount_paise  120000   (₹1,200) │
                      │ spent_on      2026-08-01        │
                      └─────────────────────────────────┘
