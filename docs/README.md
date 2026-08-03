@@ -11,7 +11,7 @@ are Indian rupees.
 | [getting-started.md](getting-started.md) | Local setup, scripts, and what must pass before shipping |
 | [project-structure.md](project-structure.md) | Where everything lives and why |
 | [conventions.md](conventions.md) | How data is read, written, aggregated, and displayed |
-| [database.md](database.md) | Tables, constraints, indexes, and how to run migrations |
+| [database.md](database.md) | The vertical/subtype/expense hierarchy, tables, constraints, indexes, the seeded taxonomy, and how to run migrations |
 | [money.md](money.md) | How rupee amounts are parsed, stored, and displayed |
 | [auth.md](auth.md) | Signing in, sessions, and where authorisation is enforced |
 | [ui.md](ui.md) | Components, styling, fonts, and dark mode |
