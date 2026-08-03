@@ -157,6 +157,11 @@ paise like everything else), not quantiles, because a reader can hold five round
 numbers. `₹0` days are not step 0 — they are struck out with a hatch, so absence
 reads as absence.
 
+The ramp is also what the **spend-over-time line** is drawn in (`ramp[4]`), not a
+categorical slot. That series is total spend and belongs to no vertical, so a
+slot hue would tell a reader who has just learned "sky blue is Loans" that the
+line is about Loans. Both views encode magnitude, so both use the ramp family.
+
 ### The treemap's smallest cells
 
 A vertical's subtypes are squarified inside it, and with 47 subtypes a cell can

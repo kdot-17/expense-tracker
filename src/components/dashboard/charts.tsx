@@ -211,15 +211,21 @@ export function SpendLine({ bodyFont }: Fonts) {
                 {
                   label: isDaily ? "Spend per day" : "Spend per week",
                   data: values,
-                  borderColor: P.group[8],
+                  // The ramp's top step, NOT a categorical slot. This series is
+                  // total spend over time — it belongs to no vertical, so
+                  // borrowing a slot hue would tell a reader who has just
+                  // learned "sky blue is Loans" that this line is about Loans.
+                  // The ramp is the design's magnitude encoding, which is what
+                  // this is, and it ties the line to the calendar beside it.
+                  borderColor: P.ramp[4],
                   borderWidth: 3,
                   tension: 0,
                   fill: true,
-                  backgroundColor: `${P.group[8]}29`, // 16% — the area wash
+                  backgroundColor: `${P.ramp[4]}29`, // 16% — the area wash
                   pointStyle: "rect",
                   pointRadius: isDaily ? 0 : 7,
                   pointHoverRadius: 7,
-                  pointBackgroundColor: P.group[8],
+                  pointBackgroundColor: P.ramp[4],
                   pointBorderColor: P.rule,
                   pointBorderWidth: 2,
                 },

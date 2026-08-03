@@ -46,9 +46,6 @@ export const EXPENSES: Expense[] = [];
  */
 export const PREVIOUS_MONTH_TOTAL_PAISE: number = 0;
 
-/** True while nothing is wired up — the page uses it to pick empty states. */
-export const HAS_DATA = EXPENSES.length > 0;
-
 /* ------------------------------------------------------------------ period */
 
 const now = new Date();
