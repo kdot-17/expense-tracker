@@ -13,14 +13,17 @@ import { body, display } from "@/lib/fonts";
 import { formatPaise } from "@/lib/money";
 import { VERTICAL_ORDER } from "@/lib/taxonomy";
 
-const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
+const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
 const DASH = "—";
 
 function SectionHead({ index, title }: { index: string; title: string }) {
   return (
-    <div className="border-rule flex items-baseline gap-3 border-b-2 pb-3">
+    // `@container` here rather than on the page: these heads sit in columns of
+    // three different widths (full bleed, 7/12, 5/12), and each should size to
+    // the one it is actually in.
+    <div className="border-rule @container flex items-baseline gap-3 border-b-2 pb-3">
       <span className={`${MICRO} text-muted shrink-0 tabular-nums`}>{index}</span>
-      <h2 className="font-display text-[clamp(1.35rem,3.4vw,2.35rem)] leading-[0.9] tracking-[-0.01em] uppercase">
+      <h2 className="font-display text-section leading-[0.9] tracking-[-0.01em] uppercase">
         {title}
       </h2>
     </div>
@@ -42,24 +45,28 @@ export function Dashboard() {
   const bodyFont = body.style.fontFamily;
 
   return (
-    <main className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col gap-10 px-4 py-8 sm:px-6 lg:gap-14 lg:px-10 lg:py-12">
+    <main className="mx-auto flex w-full max-w-[85rem] flex-1 flex-col gap-10 px-4 py-8 sm:px-6 lg:gap-14 lg:px-10 lg:py-12">
       {/* ------------------------------------------------------- headline -- */}
       <header className="border-rule bg-card grid grid-cols-1 border-2 lg:grid-cols-12">
-        <div className="border-rule border-b-2 p-5 sm:p-8 lg:col-span-7 lg:border-r-2 lg:border-b-0">
+        <div className="border-rule @container border-b-2 p-5 sm:p-8 lg:col-span-7 lg:border-r-2 lg:border-b-0">
           <p className={`${MICRO} text-muted`}>{MONTH_LABEL} · one account</p>
-          <h1 className="font-display mt-4 text-[clamp(2.6rem,9.2vw,6.4rem)] leading-[0.82] tracking-[-0.02em] uppercase">
+          <h1 className="font-display text-masthead mt-4 leading-[0.82] tracking-[-0.02em] uppercase">
             Where the
             <br />
             money went
           </h1>
-          <p className="text-ink-2 mt-5 max-w-[52ch] text-[14px] leading-relaxed sm:text-[15px]">
+          <p className="text-ink-2 text-body sm:text-lede mt-5 max-w-[52ch] leading-relaxed">
             Every expense for the month, filed under {verticalCount} verticals and
             shown to scale.
           </p>
         </div>
 
+        {/* The total is the one figure that has to fit a box it does not
+            control: a fixed 5/12 column, holding the longest string on the
+            page. `@container` is what lets `--text-total` measure that column
+            instead of the viewport. */}
         <div
-          className="flex flex-col justify-between gap-6 p-5 sm:p-8 lg:col-span-5"
+          className="@container flex flex-col justify-between gap-6 p-5 sm:p-8 lg:col-span-5"
           style={{ background: "var(--slot-0)", color: "var(--on-0)" }}
         >
           <div>
@@ -70,13 +77,13 @@ export function Dashboard() {
                 count below it stays a real 0: that one is a fact about how many
                 expenses exist, not about how much money moved. */}
             {hasData ? (
-              <p className="font-display mt-2 text-[clamp(3rem,11vw,5.6rem)] leading-[0.82] tracking-[-0.02em] tabular-nums">
+              <p className="font-display text-total mt-2 leading-[0.82] tracking-[-0.02em] tabular-nums">
                 {formatPaise(s.totalPaise)}
               </p>
             ) : (
               // The em dash is not set at headline size. Anton renders it as a
-              // long flat bar, and at 5.6rem that reads as a broken glyph
-              // rather than as "no value yet".
+              // long flat bar, and at the total's size that reads as a broken
+              // glyph rather than as "no value yet".
               <p className="font-display mt-3 text-[2rem] leading-none">
                 {DASH}
                 <span className="sr-only">No total yet</span>
@@ -90,12 +97,12 @@ export function Dashboard() {
           >
             <div>
               <dt className={MICRO}>On last month</dt>
-              <dd className="font-display text-[22px] tabular-nums">
+              <dd className="font-display text-figure tabular-nums">
                 {hasPrevious
                   ? `${s.deltaPaise >= 0 ? "+" : "−"}${Math.abs(s.deltaPct).toFixed(1)}%`
                   : DASH}
               </dd>
-              <dd className="text-[12px]">
+              <dd className="text-meta">
                 {hasPrevious
                   ? formatPaise(Math.abs(s.deltaPaise))
                   : "No prior month on file"}
@@ -103,8 +110,8 @@ export function Dashboard() {
             </div>
             <div>
               <dt className={MICRO}>Expenses</dt>
-              <dd className="font-display text-[22px] tabular-nums">{s.count}</dd>
-              <dd className="text-[12px]">
+              <dd className="font-display text-figure tabular-nums">{s.count}</dd>
+              <dd className="text-meta">
                 {s.activeDays} of {DAYS_IN_MONTH} days active
               </dd>
             </div>
@@ -115,11 +122,11 @@ export function Dashboard() {
       {/* -------------------------------------------------------- verdict -- */}
       {/* The full-bleed statement block: it carries the month's headline finding
           once there is one to carry. */}
-      <section className="bg-bar text-on-bar border-rule border-2 p-5 sm:p-8 lg:p-10">
-        <h2 className="font-display text-[clamp(1.8rem,5.4vw,3.4rem)] leading-[0.86] tracking-[-0.02em] uppercase">
+      <section className="bg-bar text-on-bar border-rule @container border-2 p-5 sm:p-8 lg:p-10">
+        <h2 className="font-display text-statement leading-[0.86] tracking-[-0.02em] uppercase">
           {hasData ? "The month, in one line" : "Nothing recorded yet"}
         </h2>
-        <p className="mt-6 max-w-[62ch] text-[14px] leading-relaxed opacity-90">
+        <p className="text-body mt-6 max-w-[62ch] leading-relaxed opacity-90">
           {hasData
             ? "The headline finding for the month goes here."
             : "No expenses have been recorded. Once they land, this block carries the month's headline finding — what moved, and against what."}

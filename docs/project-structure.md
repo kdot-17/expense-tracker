@@ -22,6 +22,7 @@ src/
       versus-previous.tsx  The diverging month-on-month strip
       ledger.tsx       Every expense, in date order
       empty.tsx        The shared zero state
+      frames.ts        Plot frame shapes, shared by charts.tsx and empty.tsx
   db/
     schema.ts          Table definitions
     index.ts           getDb() — the lazy database client

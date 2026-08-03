@@ -26,28 +26,80 @@ function tierOf(share: number): Tier {
   return "xs";
 }
 
+/**
+ * Cell type, sized in `cqi` against the treemap's own frame.
+ *
+ * This is the one place where container sizing buys something a breakpoint
+ * cannot. Every cell is a *percentage* of the frame, so if the type is also a
+ * percentage of the frame, then the ratio of a label's width to its cell's
+ * width does not change with size at all. Get a label to fit once and it fits
+ * at every width — which is not true of `md:`/`lg:` steps, where the frame
+ * grows continuously between breakpoints while the type jumps at them.
+ *
+ * The rem bounds are the old mobile and desktop steps, so the ends are
+ * unchanged and only the middle stops stepping.
+ */
 const LABEL_SIZE: Record<Tier, string> = {
-  xl: "text-[1.75rem] md:text-[2.75rem] lg:text-[3.6rem]",
-  lg: "text-[1.15rem] md:text-[1.6rem] lg:text-[2.1rem]",
-  md: "text-[0.85rem] md:text-[1.05rem] lg:text-[1.4rem]",
-  sm: "text-[0.65rem] md:text-[0.8rem] lg:text-[0.95rem]",
-  xs: "text-[0.5rem] md:text-[0.6rem] lg:text-[0.7rem]",
+  xl: "text-[clamp(1.75rem,4.5cqi,3.6rem)]",
+  lg: "text-[clamp(1.15rem,2.63cqi,2.1rem)]",
+  md: "text-[clamp(0.85rem,1.76cqi,1.4rem)]",
+  sm: "text-[clamp(0.65rem,1.19cqi,0.95rem)]",
+  // `xs` is sized per cell, in `xsLabelSize` below, because one size cannot
+  // serve every label — see the note there.
+  xs: "",
 };
 
+/**
+ * Anton's mean uppercase advance, measured from the woff2 that actually ships,
+ * less the -0.03em tracking these labels carry. Deliberately a mean rather than
+ * a per-glyph sum: it slightly over-estimates most names, and over-estimating
+ * only ever picks a smaller size, which is the safe direction.
+ */
+const EM_PER_CHAR = 0.4436;
+
+/** Leaves 8% of the cell as breathing room, since `xs` cells carry no padding. */
+const FILL = 92;
+
+/**
+ * The `xs` label sizes against its **own cell**, which is why the cell carries
+ * `@container`. Every larger tier is a fraction of the *frame*, and that holds
+ * a label at a fixed share of its cell only while the clamp is inside its `cqi`
+ * range. Below that the rem floor holds the type still while the cell keeps
+ * shrinking, the ratio turns over, and a sliver clips its own name.
+ *
+ * The coefficient has to come from the label, not from a constant. A single
+ * cell fraction must serve the longest name in the taxonomy — `Credit Card
+ * Dues`, 6.24em — and anything that fits *that* makes `Rapido` a quarter of the
+ * size it has room for. So each cell solves its own: fill 92% of the width with
+ * the characters it actually has, and never exceed the tier's 0.7rem ceiling.
+ *
+ * The result cannot clip at any frame size, and stays as large as the cell
+ * allows. A true sliver still shrinks past legibility — the name, amount and
+ * share are all in the `title`.
+ */
+function xsLabelSize(label: string): string {
+  const cqi = FILL / (Math.max(label.length, 1) * EM_PER_CHAR);
+  return `min(0.7rem, ${cqi.toFixed(1)}cqi)`;
+}
+
 const AMOUNT_SIZE: Record<Tier, string> = {
-  xl: "text-[2.2rem] md:text-[3.4rem] lg:text-[4.8rem]",
-  lg: "text-[1.5rem] md:text-[2.1rem] lg:text-[2.9rem]",
-  md: "text-[1.05rem] md:text-[1.35rem] lg:text-[1.8rem]",
-  sm: "text-[0.8rem] md:text-[1rem] lg:text-[1.25rem]",
+  xl: "text-[clamp(2.2rem,6cqi,4.8rem)]",
+  lg: "text-[clamp(1.5rem,3.64cqi,2.9rem)]",
+  md: "text-[clamp(1.05rem,2.26cqi,1.8rem)]",
+  sm: "text-[clamp(0.8rem,1.57cqi,1.25rem)]",
   xs: "", // never drawn
 };
 
 const PAD: Record<Tier, string> = {
-  xl: "p-3 md:p-5 lg:p-7",
-  lg: "p-2.5 md:p-4 lg:p-5",
-  md: "p-2 md:p-3",
-  sm: "p-1 md:p-2",
-  xs: "p-1",
+  xl: "p-[clamp(0.75rem,2.19cqi,1.75rem)]",
+  lg: "p-[clamp(0.625rem,1.57cqi,1.25rem)]",
+  md: "p-[clamp(0.5rem,0.94cqi,0.75rem)]",
+  sm: "p-[clamp(0.25rem,0.63cqi,0.5rem)]",
+  // No inset at all. A fixed one would be a fixed rem — container units on the
+  // container element resolve against its *parent*, not itself — and in a 25px
+  // cell that eats a third of the width the label is being fitted into. The 8%
+  // `FILL` leaves the breathing room instead, as a share of the cell.
+  xs: "p-0",
 };
 
 function pct(value: number, whole: number): string {
@@ -81,7 +133,12 @@ function Cell({
 
   return (
     <div
-      className={`absolute flex flex-col justify-between overflow-hidden ${PAD[tier]}`}
+      className={`absolute flex flex-col justify-between overflow-hidden ${PAD[tier]} ${
+        // Only the sliver tier becomes a container, so only its label resolves
+        // `cqi` against the cell. Every larger tier keeps resolving against the
+        // frame, which is what makes their sizes comparable to one another.
+        tier === "xs" ? "@container" : ""
+      }`}
       style={{
         left: pct(rect.x, frame.w),
         top: pct(rect.y, frame.h),
@@ -109,7 +166,12 @@ function Cell({
       <span className="flex flex-col gap-0.5">
         <span
           className={`leading-[0.85] tracking-[-0.03em] uppercase ${LABEL_SIZE[tier]}`}
-          style={{ fontFamily: "var(--font-display)" }}
+          style={{
+            fontFamily: "var(--font-display)",
+            // Inline, because the size is derived from this label's own length
+            // and Tailwind cannot generate a class per subtype name.
+            ...(tier === "xs" ? { fontSize: xsLabelSize(subtype.name) } : {}),
+          }}
         >
           {subtype.name}
         </span>
@@ -170,7 +232,7 @@ export function Treemap({
 
   return (
     <div
-      className={`relative w-full border-2 border-rule bg-rule ${className ?? ""}`}
+      className={`border-rule bg-rule @container relative w-full border-2 ${className ?? ""}`}
       style={{ aspectRatio: String(ratio) }}
     >
       {placed.map(({ item: vertical, rect }) => {
