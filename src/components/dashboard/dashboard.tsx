@@ -4,11 +4,11 @@ import { Ledger } from "@/components/dashboard/ledger";
 import { Treemap } from "@/components/dashboard/treemap";
 import { VersusPrevious } from "@/components/dashboard/versus-previous";
 import { body, display } from "@/lib/fonts";
+import { formatPaise } from "@/lib/money";
 import {
   DAYS_IN_MONTH,
-  formatINR,
   MONTH_LABEL,
-  PREVIOUS_MONTH_TOTAL,
+  PREVIOUS_MONTH_TOTAL_PAISE,
   stats,
 } from "@/lib/transactions";
 
@@ -42,7 +42,7 @@ function SectionHead({
 export function Dashboard() {
   const s = stats();
   const hasData = s.debits > 0;
-  const hasPrevious = PREVIOUS_MONTH_TOTAL > 0;
+  const hasPrevious = PREVIOUS_MONTH_TOTAL_PAISE > 0;
 
   // Chart.js paints to a canvas, so it needs the resolved family name — a CSS
   // variable means nothing to it. next/font gives us that at build time.
@@ -52,7 +52,7 @@ export function Dashboard() {
   const rail = [
     {
       label: "Median day",
-      value: hasData ? formatINR(s.medianDay) : DASH,
+      value: hasData ? formatPaise(s.medianDayPaise) : DASH,
       note: "Across the days money actually moved.",
     },
     {
@@ -62,7 +62,7 @@ export function Dashboard() {
     },
     {
       label: "Largest debit",
-      value: s.largest ? formatINR(s.largest.amount) : DASH,
+      value: s.largest ? formatPaise(s.largest.amountPaise) : DASH,
       note: s.largest ? s.largest.merchant : "No transactions recorded.",
     },
     {
@@ -95,7 +95,7 @@ export function Dashboard() {
           <div>
             <p className={MICRO}>Total debited</p>
             <p className="font-display mt-2 text-[clamp(3rem,11vw,5.6rem)] leading-[0.82] tracking-[-0.02em] tabular-nums">
-              {formatINR(s.total)}
+              {formatPaise(s.totalPaise)}
             </p>
           </div>
 
@@ -107,11 +107,13 @@ export function Dashboard() {
               <dt className={MICRO}>On last month</dt>
               <dd className="font-display text-[22px] tabular-nums">
                 {hasPrevious
-                  ? `${s.delta >= 0 ? "+" : "−"}${Math.abs(s.deltaPct).toFixed(1)}%`
+                  ? `${s.deltaPaise >= 0 ? "+" : "−"}${Math.abs(s.deltaPct).toFixed(1)}%`
                   : DASH}
               </dd>
               <dd className="text-[12px]">
-                {hasPrevious ? formatINR(Math.abs(s.delta)) : "No prior month on file"}
+                {hasPrevious
+                  ? formatPaise(Math.abs(s.deltaPaise))
+                  : "No prior month on file"}
               </dd>
             </div>
             <div>
@@ -164,7 +166,7 @@ export function Dashboard() {
           note="Area is amount. The ten categories nest inside the seven frozen groups: one colour is one group, and the wide gutters mark where a group ends. Packed by size, never sorted by colour."
         />
         <Treemap ratio={1.85} className="hidden md:block" />
-        <Treemap ratio={0.78} className="md:hidden" />
+        <Treemap ratio={0.78} className="md:hidden" compact />
       </section>
 
       {/* ------------------------------------------------ pie + vs. prior -- */}

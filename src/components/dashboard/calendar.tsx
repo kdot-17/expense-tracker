@@ -1,13 +1,13 @@
+import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import {
-  byDay,
+  byDayPaise,
   DAYS_IN_MONTH,
   FIRST_WEEKDAY,
-  formatINR,
-  weekdayMedians,
+  weekdayMediansPaise,
   WEEKDAYS_LONG,
   WEEKDAYS_SHORT,
 } from "@/lib/transactions";
-import { compactINR, RAMP_LABELS, rampStep } from "@/lib/palette";
+import { RAMP_LABELS, rampStep } from "@/lib/palette";
 
 /** Card cell, hard ink slashes. A blank day should look struck out, not just
     pale — absence encoded as absence, in both themes. */
@@ -15,11 +15,11 @@ const QUIET_FILL =
   "repeating-linear-gradient(-45deg, var(--card) 0 5px, var(--rule) 5px 7px)";
 
 export function CalendarBlock() {
-  const daily = byDay();
-  const medians = weekdayMedians();
+  const daily = byDayPaise();
+  const medians = weekdayMediansPaise();
   // With nothing wired up, striking out all 31 days would assert that we know
   // no money moved. We do not — we know nothing. Draw a plain grid instead.
-  const known = daily.some((amount) => amount > 0);
+  const known = daily.some((paise) => paise > 0);
   const length = Math.ceil((FIRST_WEEKDAY + DAYS_IN_MONTH) / 7) * 7;
   const cells = Array.from({ length }, (_, i) => {
     const day = i - FIRST_WEEKDAY + 1;
@@ -54,9 +54,9 @@ export function CalendarBlock() {
             );
           }
 
-          const amount = daily[day - 1];
-          const quiet = known && amount === 0;
-          const step = rampStep(amount);
+          const paise = daily[day - 1];
+          const quiet = known && paise === 0;
+          const step = rampStep(paise);
 
           return (
             <div
@@ -66,7 +66,7 @@ export function CalendarBlock() {
                   ? `Day ${day}`
                   : quiet
                     ? `Day ${day} — nothing moved`
-                    : `Day ${day} — ${formatINR(amount)}`
+                    : `Day ${day} — ${formatPaise(paise)}`
               }
               className="flex aspect-square flex-col justify-between overflow-hidden p-1 sm:p-1.5"
               style={{
@@ -90,7 +90,7 @@ export function CalendarBlock() {
                   padding: quiet ? "1px 2px" : undefined,
                 }}
               >
-                {!known ? "" : quiet ? "NIL" : compactINR(amount)}
+                {!known ? "" : quiet ? "NIL" : formatPaiseCompact(paise)}
               </span>
             </div>
           );
@@ -112,7 +112,7 @@ export function CalendarBlock() {
               className="block text-[11px] tabular-nums sm:text-[13px]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              {known ? compactINR(value) : "—"}
+              {known ? formatPaiseCompact(value) : "—"}
             </span>
           </div>
         ))}

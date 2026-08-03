@@ -1,10 +1,18 @@
 /**
- * Every amount in this app is INR, stored as an integer number of paise.
+ * The one money module. Every amount in this app is INR held as an integer
+ * number of paise — in the database, in the data layer, and in every value
+ * passed between them. Rupees exist only as the *output* of the formatters
+ * below, at the moment something is painted on screen.
  *
  * Floats are never used for money: `0.1 + 0.2` style error would land directly
  * in a spend total. Rupee input arrives from `FormData` as a string, so it is
  * parsed digit-wise rather than via `parseFloat(x) * 100` — multiplying a
  * parsed float reintroduces exactly the binary-fraction error being avoided.
+ *
+ * Every formatter here takes paise, and every one says so in its name. That is
+ * deliberate: a helper called `formatINR(amount)` reads as correct when handed
+ * rupees, and that is how a rupee value gets a hundred times too small without
+ * anything failing. See docs/money.md.
  */
 
 /** Postgres `integer` upper bound — the column type backing `amount_paise`. */
@@ -40,14 +48,51 @@ export function parseRupeesToPaise(input: string): number | null {
   return paise;
 }
 
-const INR_FORMAT = new Intl.NumberFormat("en-IN", {
+/**
+ * Dividing by 100 introduces a float. That is safe in this file and nowhere
+ * else: the result is a display string that never flows back into arithmetic
+ * that gets stored.
+ */
+function toRupees(paise: number): number {
+  return paise / 100;
+}
+
+const EXACT_INR = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
 });
 
-/** Formats paise for display, with Indian lakh/crore grouping: `₹1,23,456.78`. */
+/**
+ * Rupees to the paise, with Indian lakh/crore grouping: `₹1,23,456.78`.
+ *
+ * The app's one display format. Amounts are shown in full rather than rounded
+ * to the rupee: the paise are real, and a figure that quietly drops them is a
+ * figure that disagrees with what was entered. `.00` on a round amount is a
+ * cheaper cost than that.
+ */
 export function formatPaise(paise: number): string {
-  // Dividing by 100 introduces a float, which is fine only because this value
-  // is display-only and never flows back into stored arithmetic.
-  return INR_FORMAT.format(paise / 100);
+  return EXACT_INR.format(toRupees(paise));
+}
+
+const LAKH_IN_PAISE = 1_00_00_000;
+const THOUSAND_IN_PAISE = 1_00_000;
+
+/**
+ * `₹2.6k` / `₹29.4k` / `₹1.2L` — axis ticks and calendar cells only, never a
+ * headline and never a figure being reported as exact.
+ *
+ * This one *is* an approximation by design: `₹2.6k` is already rounded, so
+ * below ₹1,000 it prints whole rupees rather than pretending to a precision the
+ * rest of the string does not have. Anywhere the exact number matters, use
+ * `formatPaise`.
+ */
+export function formatPaiseCompact(paise: number): string {
+  if (paise >= LAKH_IN_PAISE) return `₹${(paise / LAKH_IN_PAISE).toFixed(1)}L`;
+  if (paise >= THOUSAND_IN_PAISE) return `₹${(paise / THOUSAND_IN_PAISE).toFixed(1)}k`;
+
+  // Round to rupees, then re-test the thousand mark. ₹999.60 rounds to 1000,
+  // which would otherwise print a bare "₹1000" one paisa below the value that
+  // prints "₹1.0k" — and inside the band the calendar key calls "< ₹1k".
+  const rupees = Math.round(toRupees(paise));
+  return rupees >= 1000 ? `₹${(rupees / 1000).toFixed(1)}k` : `₹${rupees}`;
 }

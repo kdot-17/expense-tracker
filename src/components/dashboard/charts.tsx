@@ -4,22 +4,16 @@ import { useState } from "react";
 import { Bar, Line, Pie } from "react-chartjs-2";
 
 import "@/lib/chart-setup";
-import {
-  compactINR,
-  merchantGroup,
-  PALETTES,
-  slotOf,
-  type Palette,
-} from "@/lib/palette";
+import { formatPaise, formatPaiseCompact } from "@/lib/money";
+import { merchantGroup, PALETTES, slotOf, type Palette } from "@/lib/palette";
 import { useTheme } from "@/lib/theme";
 import {
-  byDay,
+  byDayPaise,
   byGroup,
   byWeek,
   DAYS_IN_MONTH,
-  formatINR,
   topMerchants,
-  totalSpend,
+  totalSpendPaise,
 } from "@/lib/transactions";
 
 import { EmptyPlot } from "./empty";
@@ -63,7 +57,7 @@ const share = (part: number, whole: number) =>
 export function GroupPie({ bodyFont, displayFont }: Fonts) {
   const { theme, P } = useChartTheme();
   const groups = byGroup();
-  const total = totalSpend();
+  const total = totalSpendPaise();
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
@@ -77,14 +71,17 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
             key={theme}
             // react-chartjs-2 puts role="img" on the canvas itself but gives it
             // no name, so without this every chart is an unlabelled graphic.
-            aria-label={`Spending by group. Total ${formatINR(total)}. ${groups
-              .map((e) => `${e.group}: ${formatINR(e.amount)}, ${share(e.amount, total)} per cent`)
+            aria-label={`Spending by group. Total ${formatPaise(total)}. ${groups
+              .map(
+                (e) =>
+                  `${e.group}: ${formatPaise(e.amountPaise)}, ${share(e.amountPaise, total)} per cent`,
+              )
               .join(". ")}`}
             data={{
               labels: groups.map((entry) => entry.group),
               datasets: [
                 {
-                  data: groups.map((entry) => entry.amount),
+                  data: groups.map((entry) => entry.amountPaise),
                   backgroundColor: groups.map((_, i) => P.group[i]),
                   borderColor: P.rule,
                   borderWidth: 2,
@@ -105,7 +102,7 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
                   ...tooltipStyle(P, bodyFont),
                   callbacks: {
                     label: (ctx) =>
-                      `${formatINR(ctx.parsed ?? 0)} · ${share(ctx.parsed ?? 0, total)}%`,
+                      `${formatPaise(ctx.parsed ?? 0)} · ${share(ctx.parsed ?? 0, total)}%`,
                   },
                 },
               },
@@ -139,10 +136,10 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
               className="text-ink shrink-0 text-[15px] tabular-nums"
               style={{ fontFamily: displayFont }}
             >
-              {total === 0 ? "—" : formatINR(entry.amount)}
+              {total === 0 ? "—" : formatPaise(entry.amountPaise)}
             </span>
             <span className="text-ink-2 w-12 shrink-0 text-right text-[12px] tabular-nums">
-              {total === 0 ? "" : `${share(entry.amount, total)}%`}
+              {total === 0 ? "" : `${share(entry.amountPaise, total)}%`}
             </span>
           </li>
         ))}
@@ -158,15 +155,15 @@ type Grain = "daily" | "weekly";
 export function SpendLine({ bodyFont }: Fonts) {
   const { theme, P } = useChartTheme();
   const [grain, setGrain] = useState<Grain>("daily");
-  const daily = byDay();
+  const daily = byDayPaise();
   const weekly = byWeek();
   const isDaily = grain === "daily";
-  const hasData = totalSpend() > 0;
+  const hasData = totalSpendPaise() > 0;
 
   const labels = isDaily
     ? daily.map((_, i) => String(i + 1))
     : weekly.map((week) => week.label);
-  const values = isDaily ? daily : weekly.map((week) => week.amount);
+  const values = isDaily ? daily : weekly.map((week) => week.amountPaise);
 
   return (
     <div className="flex flex-col gap-4">
@@ -201,7 +198,7 @@ export function SpendLine({ bodyFont }: Fonts) {
           <Line
             key={theme}
             aria-label={`Spend per ${isDaily ? "day" : "week"}. ${labels
-              .map((l, i) => `${isDaily ? `Day ${l}` : l}: ${formatINR(values[i] ?? 0)}`)
+              .map((l, i) => `${isDaily ? `Day ${l}` : l}: ${formatPaise(values[i] ?? 0)}`)
               .join(". ")}`}
             data={{
               labels,
@@ -238,7 +235,7 @@ export function SpendLine({ bodyFont }: Fonts) {
                     label: (ctx) =>
                       (ctx.parsed.y ?? 0) === 0
                         ? "No spending"
-                        : formatINR(ctx.parsed.y ?? 0),
+                        : formatPaise(ctx.parsed.y ?? 0),
                   },
                 },
               },
@@ -261,7 +258,7 @@ export function SpendLine({ bodyFont }: Fonts) {
                     color: P.muted,
                     font: { family: bodyFont, size: 11 },
                     maxTicksLimit: 5,
-                    callback: (value) => compactINR(Number(value)),
+                    callback: (value) => formatPaiseCompact(Number(value)),
                   },
                 },
               },
@@ -294,14 +291,14 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
         <Bar
           key={theme}
           aria-label={`Top ${merchants.length} merchants by spend. ${merchants
-            .map((e, i) => `${e.merchant}, ${groupNames[i]}: ${formatINR(e.amount)}`)
+            .map((e, i) => `${e.merchant}, ${groupNames[i]}: ${formatPaise(e.amountPaise)}`)
             .join(". ")}`}
           data={{
             labels: merchants.map((entry) => entry.merchant.toUpperCase()),
             datasets: [
               {
                 label: "Spend",
-                data: merchants.map((entry) => entry.amount),
+                data: merchants.map((entry) => entry.amountPaise),
                 backgroundColor: slots.map((slot) => P.group[slot]),
                 borderColor: P.rule,
                 borderWidth: 2,
@@ -316,14 +313,16 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
-            layout: { padding: { right: 64 } },
+            // Room for the value drawn past the end of each bar. Sized for a
+            // full paise figure — `₹1,23,456.78`, not `₹1,23,457`.
+            layout: { padding: { right: 92 } },
             plugins: {
               legend: { display: false }, // named swatches sit under the chart
               tooltip: {
                 ...tooltipStyle(P, bodyFont),
                 callbacks: {
                   label: (ctx) =>
-                    `${formatINR(ctx.parsed.x ?? 0)} · ${groupNames[ctx.dataIndex]}`,
+                    `${formatPaise(ctx.parsed.x ?? 0)} · ${groupNames[ctx.dataIndex]}`,
                 },
               },
             },
@@ -336,7 +335,7 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
                   color: P.muted,
                   font: { family: bodyFont, size: 11 },
                   maxTicksLimit: 5,
-                  callback: (value) => compactINR(Number(value)),
+                  callback: (value) => formatPaiseCompact(Number(value)),
                 },
               },
               y: {
@@ -362,7 +361,7 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
                 ctx.textBaseline = "middle";
                 ctx.font = `400 13px ${displayFont}`;
                 meta.data.forEach((bar, i) => {
-                  ctx.fillText(formatINR(Number(raw[i] ?? 0)), bar.x + 10, bar.y + 1);
+                  ctx.fillText(formatPaise(Number(raw[i] ?? 0)), bar.x + 10, bar.y + 1);
                 });
                 ctx.restore();
               },

@@ -1,9 +1,5 @@
-import {
-  byGroup,
-  formatINR,
-  groupVsPrevious,
-  PREVIOUS_MONTH_TOTAL,
-} from "@/lib/transactions";
+import { formatPaise } from "@/lib/money";
+import { byGroup, groupVsPrevious, PREVIOUS_MONTH_TOTAL_PAISE } from "@/lib/transactions";
 
 import { EmptyPlot } from "./empty";
 
@@ -16,7 +12,7 @@ export function VersusPrevious() {
   // Without a prior month every delta is 0, and the rows would read "no change"
   // and "identical to last month" — a comparison against a month that does not
   // exist. The header already says "No prior month on file"; say the same here.
-  if (PREVIOUS_MONTH_TOTAL <= 0) {
+  if (PREVIOUS_MONTH_TOTAL_PAISE <= 0) {
     return <EmptyPlot label="No prior month on file" />;
   }
 
@@ -24,7 +20,7 @@ export function VersusPrevious() {
   const groups = byGroup();
   // Floored at 1: a real month where every group moved by exactly zero would
   // otherwise divide by zero and size every bar NaN.
-  const max = Math.max(1, ...deltas.map((entry) => Math.abs(entry.delta)));
+  const max = Math.max(1, ...deltas.map((entry) => Math.abs(entry.deltaPaise)));
 
   return (
     <div className="flex flex-col">
@@ -39,16 +35,18 @@ export function VersusPrevious() {
 
       <ul>
         {deltas.map((entry, i) => {
-          const width = (Math.abs(entry.delta) / max) * 50;
-          const up = entry.delta > 0;
-          const flat = entry.delta === 0;
+          const width = (Math.abs(entry.deltaPaise) / max) * 50;
+          const up = entry.deltaPaise > 0;
+          const flat = entry.deltaPaise === 0;
 
           return (
             <li
               key={entry.group}
               className="grid grid-cols-[96px_minmax(0,1fr)_76px] items-center gap-2 border-b border-grid py-2 sm:grid-cols-[168px_minmax(0,1fr)_92px] sm:gap-3"
-              title={`${entry.group}: ${formatINR(groups[i].amount)} this month, ${
-                flat ? "identical to last month" : `${up ? "+" : "−"}${formatINR(Math.abs(entry.delta))} on last month`
+              title={`${entry.group}: ${formatPaise(groups[i].amountPaise)} this month, ${
+                flat
+                  ? "identical to last month"
+                  : `${up ? "+" : "−"}${formatPaise(Math.abs(entry.deltaPaise))} on last month`
               }`}
             >
               <span className="flex min-w-0 items-center gap-2">
@@ -93,7 +91,7 @@ export function VersusPrevious() {
                 ) : (
                   <span style={{ fontFamily: "var(--font-display)" }}>
                     {up ? "+" : "−"}
-                    {formatINR(Math.abs(entry.delta))}
+                    {formatPaise(Math.abs(entry.deltaPaise))}
                   </span>
                 )}
               </span>

@@ -92,13 +92,24 @@ export const PALETTES: Record<ThemeName, Palette> = { light: LIGHT, dark: DARK }
 /** Printed in the calendar key, so the ramp never has to be decoded by eye. */
 export const RAMP_LABELS = ["< ₹1k", "₹1–2k", "₹2–3k", "₹3–5k", "₹5k +"] as const;
 
-/** Fixed cuts, not quantiles — a reader can hold five round numbers. */
-export function rampStep(amount: number): number {
-  if (amount < 1000) return 0;
-  if (amount < 2000) return 1;
-  if (amount < 3000) return 2;
-  if (amount < 5000) return 3;
-  return 4;
+/**
+ * Fixed cuts, not quantiles — a reader can hold five round numbers.
+ *
+ * These are **paise**, like every amount in the app, so each is a hundred times
+ * the rupee figure printed in `RAMP_LABELS` above. The two lists describe the
+ * same five bands and have to be edited together: a key that disagrees with the
+ * shading is worse than no key at all.
+ */
+const RAMP_CUTS_PAISE = [
+  1_00_000, // ₹1k
+  2_00_000, // ₹2k
+  3_00_000, // ₹3k
+  5_00_000, // ₹5k
+] as const;
+
+export function rampStep(paise: number): number {
+  const step = RAMP_CUTS_PAISE.findIndex((cut) => paise < cut);
+  return step === -1 ? RAMP_CUTS_PAISE.length : step;
 }
 
 export function slotOf(group: Group): number {
@@ -113,11 +124,4 @@ export function categorySlot(category: Category): number {
 export function merchantGroup(merchant: string): Group {
   const hit = TRANSACTIONS.find((t) => t.merchant === merchant);
   return hit ? CATEGORY_TO_GROUP[hit.category] : "Other";
-}
-
-/** ₹2.6k / ₹29.4k — axis ticks and calendar cells only, never a headline. */
-export function compactINR(amount: number): string {
-  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
-  if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}k`;
-  return `₹${amount}`;
 }
