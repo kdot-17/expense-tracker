@@ -115,6 +115,26 @@ so it is announced when it appears, and the password field points at it with
 `noValidate` so validation messaging stays consistent with the server's, rather
 than the browser showing its own first.
 
+The password field carries a reveal toggle, which is the **only icon in the
+app** — everything else that toggles is a micro-caps word (`LIGHT`/`DARK`,
+`DAILY`/`WEEKLY`). It is drawn inline rather than imported, to the same rules as
+the rest of the design: flat, square-cut, 2px stroke, and painted in
+`currentColor` so it follows the theme with no second value to keep in step.
+
+Four things about it are load-bearing rather than incidental:
+
+- `type="button"`. A bare `<button>` inside a form defaults to `submit`, so
+  without this, revealing the password would post the form.
+- The name is fixed at "Show password" and the *state* rides on `aria-pressed`.
+  A label that flips to "Hide password" changes out from under a screen reader
+  mid-interaction, and the user hears the control rename itself rather than
+  hearing that it toggled.
+- The eye gains a diagonal strike when hidden. At 20px an open and a closed eye
+  are nearly the same silhouette, so the state cannot rest on that shape alone.
+- The reveal always starts off, and is component state rather than anything
+  persisted. A field that remembered being revealed would show the password to
+  whoever opened the page next.
+
 ## Conventions
 
 - Prefer Server Components. Reach for `"use client"` only when something needs
