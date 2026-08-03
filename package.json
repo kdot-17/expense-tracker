@@ -7,12 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "palette": "node scripts/palette-check.mjs --all",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint && npm run palette && npm run build"
+    "palette": "node scripts/palette-check.mjs --all",
+    "verify": "npm run typecheck && npm run lint && npm run palette && npm run build",
+    "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+    "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
+    "db:studio": "dotenv -e .env.local -- drizzle-kit studio"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "chart.js": "^4.5.1",
+    "drizzle-orm": "^0.45.2",
     "next": "16.2.12",
     "react": "19.2.4",
     "react-chartjs-2": "^5.3.1",
@@ -24,6 +29,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "dotenv-cli": "^11.0.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
