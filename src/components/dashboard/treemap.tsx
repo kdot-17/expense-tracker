@@ -44,7 +44,18 @@ const LABEL_SIZE: Record<Tier, string> = {
   lg: "text-[clamp(1.15rem,2.63cqi,2.1rem)]",
   md: "text-[clamp(0.85rem,1.76cqi,1.4rem)]",
   sm: "text-[clamp(0.65rem,1.19cqi,0.95rem)]",
-  xs: "text-[clamp(0.5rem,0.88cqi,0.7rem)]",
+  // `xs` alone is sized against its **own cell**, not the frame — the cell
+  // carries `@container` for exactly this. Every other tier is a frame
+  // fraction, which keeps a label's width a fixed share of its cell only while
+  // the clamp is in its `cqi` range; below that the floor holds the type still
+  // as the cell keeps shrinking, and a sliver clips its own name.
+  //
+  // A cell fraction cannot do that. `Credit Card Dues` is the widest label in
+  // the taxonomy at 6.24em of Anton, so at 11% of the cell it occupies 0.69 of
+  // the width it has, whatever that width is. No label clips at any frame size.
+  // It goes illegibly small in a sliver instead, which is the honest failure:
+  // the amount, the name and the share are all in the `title`.
+  xs: "text-[min(0.7rem,11cqi)]",
 };
 
 const AMOUNT_SIZE: Record<Tier, string> = {
@@ -60,8 +71,12 @@ const PAD: Record<Tier, string> = {
   lg: "p-[clamp(0.625rem,1.57cqi,1.25rem)]",
   md: "p-[clamp(0.5rem,0.94cqi,0.75rem)]",
   sm: "p-[clamp(0.25rem,0.63cqi,0.5rem)]",
-  // A sliver has no room to inset anything; Tailwind's scale is already rem.
-  xs: "p-1",
+  // A sliver has almost no room to inset anything. This one stays a fixed rem
+  // rather than a cell fraction because container units on the container
+  // element itself resolve against its *parent*, not itself — so a `cqi`
+  // padding here would measure the frame, not the cell. Half the usual inset
+  // keeps the guarantee above intact down to a ~13px cell.
+  xs: "p-0.5",
 };
 
 function pct(value: number, whole: number): string {
@@ -95,7 +110,12 @@ function Cell({
 
   return (
     <div
-      className={`absolute flex flex-col justify-between overflow-hidden ${PAD[tier]}`}
+      className={`absolute flex flex-col justify-between overflow-hidden ${PAD[tier]} ${
+        // Only the sliver tier becomes a container, so only its label resolves
+        // `cqi` against the cell. Every larger tier keeps resolving against the
+        // frame, which is what makes their sizes comparable to one another.
+        tier === "xs" ? "@container" : ""
+      }`}
       style={{
         left: pct(rect.x, frame.w),
         top: pct(rect.y, frame.h),
