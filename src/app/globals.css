@@ -255,10 +255,16 @@
 
   /* The calendar is seven `aspect-square` cells across, so a cell is exactly
      one seventh of the grid and nothing else. Its type follows that directly
-     rather than through breakpoints, which is why the grid is a container. */
-  --text-cell-head: clamp(0.625rem, 2cqi, 0.6875rem);
-  --text-cell-day: clamp(0.6875rem, 2.4cqi, 0.8125rem);
-  --text-cell-figure: clamp(0.5rem, 1.9cqi, 0.625rem);
+     rather than through breakpoints, which is why the grid is a container.
+
+     The coefficients are set against the *narrowest* grid the layout produces —
+     the 5/12 column at a 1024px viewport, about 371px — so the ceilings are
+     reached there rather than beyond it. Calibrating against a wider grid is
+     what dropped these to their floors at `lg`, printing 8px figures where the
+     fixed sizes had printed 10px. */
+  --text-cell-head: clamp(0.625rem, 3cqi, 0.6875rem);
+  --text-cell-day: clamp(0.6875rem, 3.5cqi, 0.8125rem);
+  --text-cell-figure: clamp(0.5rem, 2.7cqi, 0.625rem);
 }
 
 /* -------------------------------------------------------------------- base */
