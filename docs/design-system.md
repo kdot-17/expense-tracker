@@ -33,24 +33,31 @@ being reachable without scrolling. See §7 for what the layout has to guarantee.
 
 One view per row, each shot at the full board so the tabs, the KPI strip and the
 masthead are all in frame. There is no separate masthead shot any more — the
-band is in every one of these.
+band is in every one of these. The fourth row is the add-expense dialog open
+over the board, which is what pins the two things CSS cannot: the native
+select and date chrome under each `color-scheme`, and the backdrop's polarity.
 
 | Light | Dark |
 |---|---|
 | ![Light overview](screenshots/light-overview.jpg) | ![Dark overview](screenshots/dark-overview.jpg) |
 | ![Light breakdown](screenshots/light-breakdown.jpg) | ![Dark breakdown](screenshots/dark-breakdown.jpg) |
 | ![Light ledger](screenshots/light-ledger.jpg) | ![Dark ledger](screenshots/dark-ledger.jpg) |
+| ![Light add dialog](screenshots/light-add.jpg) | ![Dark add dialog](screenshots/dark-add.jpg) |
 
-> Captured against temporary sample data, then reverted, and kept as the
-> **visual reference for what a populated board should look like**. The
-> database ships empty, so a fresh install shows the same modules in their
-> empty states — which is the one thing these cannot show you.
+> Captured against temporary sample data written through the app's own add
+> flow plus a scripted prior month, then deleted, and kept as the **visual
+> reference for what a populated board should look like**. The database ships
+> empty, so a fresh install shows the same modules in their empty states —
+> which is the one thing these cannot show you.
 >
-> The sample month is chosen to exercise the cases that have broken before, not
-> to look tidy: a home loan large enough to dominate the treemap, subtypes small
-> enough to fall below the 2% tier where a cell carries a name and no amount,
-> two days with nothing on them so the calendar's struck-out state appears, and
-> a prior month that moves some verticals up and others down.
+> The sample month is chosen to exercise the cases that have broken before,
+> not to look tidy: a home loan large enough to dominate the treemap, subtypes
+> small enough to fall below the 2% tier where a cell carries a name and no
+> amount, struck-out nothing-moved days on the calendar, and a prior month
+> that moves some verticals up, others down, and holds two exactly flat. The
+> shots are taken mid-month on purpose: days that have not happened yet render
+> plain — not struck out — and the reference should show that rule, since the
+> board must never claim tomorrow spent nothing.
 >
 > Re-shoot them whenever the palette, the taxonomy or the layout changes. Any
 > screenshot showing seven slots, the words "Rent & home", or a full-bleed
