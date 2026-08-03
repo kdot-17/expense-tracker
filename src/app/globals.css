@@ -206,6 +206,67 @@
   --font-sans: var(--font-brut-body), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* -------------------------------------------------------------- type scale --
+   Every size is `rem`, never `px`, so the whole page follows the reader's
+   browser font setting instead of overriding it. A reader who sets 20px text
+   gets a page 25% larger; with px it would not move at all.
+
+   The fixed steps below are the old px values expressed as rem at a 16px root,
+   so nothing changes size at the default setting — they stop being frozen, is
+   all. */
+@theme {
+  --text-micro: 0.625rem; /* 10 — micro-caps, the label voice */
+  --text-tick: 0.6875rem; /* 11 — axis ticks, dense rows */
+  --text-meta: 0.75rem; /* 12 — secondary metadata */
+  --text-note: 0.8125rem; /* 13 — notes and table body */
+  --text-body: 0.875rem; /* 14 — body copy */
+  --text-lede: 0.9375rem; /* 15 — body copy, wide */
+  --text-figure: 1.375rem; /* 22 — small figure */
+
+  /* ---- fluid display steps ----
+     These are `cqi` — 1% of the *container's* inline size — not `vw`. A
+     headline sits in a column that is a fixed fraction of the page, so its
+     width is only loosely related to the viewport: at 1024px the total's
+     column is 329px while `11vw` still reads 112px, which is how a figure ends
+     up wider than the box it lives in. Sizing against the container means the
+     type is large exactly when there is room for it to be.
+
+     Each of these REQUIRES an ancestor carrying `@container`. Without one,
+     `cqi` falls back to the small viewport, which is merely the old
+     viewport-relative behaviour — degraded, not broken. See docs/design-system.md. */
+  --text-masthead: clamp(2.6rem, 13cqi, 6.4rem);
+  /* 18cqi is measured, not chosen. `₹99,99,999.99` — a month just under a
+     crore, and the longest figure worth designing for — is 5.40em of Anton at
+     this tracking, so it needs the type to stay under ~18.5% of the column.
+     18cqi leaves a little margin on top of that. Raising it overflows the
+     block, which is exactly what `11vw` used to do here.
+
+     The column could in principle hold more: `amount_paise` is a Postgres
+     `integer`, so its ceiling formats to `₹2,14,74,836.47` — 15 characters,
+     5.92em, which would need ~16cqi and would cost every realistic figure ~10px
+     of headline. A ₹2.14 crore month is not the case to design the masthead
+     around, so it is accepted that it would overflow. */
+  --text-total: clamp(2.25rem, 18cqi, 5.6rem);
+  --text-section: clamp(1.35rem, 7cqi, 2.35rem);
+  --text-statement: clamp(1.8rem, 8cqi, 3.4rem);
+  /* The sign-in card is `max-w-sm`, so its width stops growing long before the
+     viewport does — the same mismatch as the total, on a smaller scale. */
+  --text-signin: clamp(2rem, 15cqi, 3rem);
+
+  /* The calendar is seven `aspect-square` cells across, so a cell is exactly
+     one seventh of the grid and nothing else. Its type follows that directly
+     rather than through breakpoints, which is why the grid is a container.
+
+     The coefficients are set against the *narrowest* grid the layout produces —
+     the 5/12 column at a 1024px viewport, about 371px — so the ceilings are
+     reached there rather than beyond it. Calibrating against a wider grid is
+     what dropped these to their floors at `lg`, printing 8px figures where the
+     fixed sizes had printed 10px. */
+  --text-cell-head: clamp(0.625rem, 3cqi, 0.6875rem);
+  --text-cell-day: clamp(0.6875rem, 3.5cqi, 0.8125rem);
+  --text-cell-figure: clamp(0.5rem, 2.7cqi, 0.625rem);
+}
+
 /* -------------------------------------------------------------------- base */
 
 body {

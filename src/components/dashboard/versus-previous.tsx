@@ -25,10 +25,10 @@ export function VersusPrevious() {
   return (
     <div className="flex flex-col">
       <div className="flex items-end justify-between border-b-2 border-rule pb-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+        <span className="text-micro font-semibold uppercase tracking-[0.18em] text-muted">
           ◀ Spent less
         </span>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+        <span className="text-micro font-semibold uppercase tracking-[0.18em] text-muted">
           Spent more ▶
         </span>
       </div>
@@ -42,7 +42,13 @@ export function VersusPrevious() {
           return (
             <li
               key={entry.vertical}
-              className="grid grid-cols-[96px_minmax(0,1fr)_76px] items-center gap-2 border-b border-grid py-2 sm:grid-cols-[168px_minmax(0,1fr)_92px] sm:gap-3"
+              // Name and value columns are `minmax` in rem with a fractional
+              // ceiling: they hold a floor wide enough for the longest vertical
+              // name at that step — "Subscriptions" — and then share any slack
+              // proportionally, which fixed px tracks could not do. The bar
+              // between them absorbs the rest. Below `sm` the name is allowed
+              // to wrap onto a second line instead, as it always was.
+              className="border-grid grid grid-cols-[minmax(6rem,0.9fr)_minmax(0,2fr)_minmax(4.75rem,0.7fr)] items-center gap-2 border-b py-2 sm:grid-cols-[minmax(8.75rem,0.9fr)_minmax(0,2fr)_minmax(5.75rem,0.7fr)] sm:gap-3"
               title={`${entry.vertical}: ${formatPaise(verticals[i].amountPaise)} this month, ${
                 flat
                   ? "identical to last month"
@@ -55,7 +61,7 @@ export function VersusPrevious() {
                   className="size-3 shrink-0 border-2 border-rule"
                   style={{ background: `var(--slot-${i})` }}
                 />
-                <span className="min-w-0 text-[11px] leading-tight font-medium break-words text-ink sm:text-[13px]">
+                <span className="text-ink text-tick sm:text-note min-w-0 leading-tight font-medium break-words">
                   {entry.vertical}
                 </span>
               </span>
@@ -85,7 +91,7 @@ export function VersusPrevious() {
                 )}
               </span>
 
-              <span className="text-right text-[11px] tabular-nums sm:text-[13px]">
+              <span className="text-right text-tick tabular-nums sm:text-note">
                 {flat ? (
                   <span className="text-muted">no change</span>
                 ) : (
