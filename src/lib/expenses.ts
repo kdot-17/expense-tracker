@@ -68,6 +68,16 @@ export const FIRST_WEEKDAY = PERIOD.firstWeekday;
 export const MONTH_LABEL = PERIOD.label;
 
 /**
+ * Whether the period being shown has actually finished. Derived, never typed as
+ * a literal: the masthead used to say "closed" unconditionally, which claimed a
+ * month was final on its third day. Once PERIOD becomes selectable this stays
+ * correct without the caller remembering to.
+ */
+export const PERIOD_IS_CLOSED =
+  PERIOD.year < now.getFullYear() ||
+  (PERIOD.year === now.getFullYear() && PERIOD.month < now.getMonth());
+
+/**
  * Monday-first, matching FIRST_WEEKDAY and the calendar's column order.
  * Declared here rather than in a component so every weekday label in the app
  * comes from one place — the calendar grid and its median strip used to
