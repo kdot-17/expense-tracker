@@ -213,12 +213,18 @@
      `cqi` falls back to the small viewport, which is merely the old
      viewport-relative behaviour — degraded, not broken. See docs/design-system.md. */
   --text-masthead: clamp(2.6rem, 13cqi, 6.4rem);
-  /* 18.5cqi is not a taste decision. Anton averages ~0.40em per character in a
-     grouped rupee figure, and the longest amount the `integer` paise column can
-     hold is 13 characters — `₹21,47,483.64` — so the figure needs ~5.2em. At
-     18.5% of the column that lands inside it at every width the column takes.
-     Raising this makes the largest amounts overflow their block. */
-  --text-total: clamp(2.25rem, 18.5cqi, 5.6rem);
+  /* 18cqi is measured, not chosen. `₹99,99,999.99` — a month just under a
+     crore, and the longest figure worth designing for — is 5.40em of Anton at
+     this tracking, so it needs the type to stay under ~18.5% of the column.
+     18cqi leaves a little margin on top of that. Raising it overflows the
+     block, which is exactly what `11vw` used to do here.
+
+     The column could in principle hold more: `amount_paise` is a Postgres
+     `integer`, so its ceiling formats to `₹2,14,74,836.47` — 15 characters,
+     5.92em, which would need ~16cqi and would cost every realistic figure ~10px
+     of headline. A ₹2.14 crore month is not the case to design the masthead
+     around, so it is accepted that it would overflow. */
+  --text-total: clamp(2.25rem, 18cqi, 5.6rem);
   --text-rail: clamp(1.5rem, 13cqi, 2.4rem);
   --text-section: clamp(1.35rem, 7cqi, 2.35rem);
   --text-statement: clamp(1.8rem, 8cqi, 3.4rem);

@@ -62,9 +62,9 @@ const MICRO = "text-micro font-semibold uppercase tracking-[0.18em] text-muted";
  * the type they have to stay legible against; the ratio takes over above them.
  */
 const LINE_FRAME =
-  "aspect-[6/5] sm:aspect-[16/9] lg:aspect-[11/5] min-h-[17.5rem] sm:min-h-[21.25rem]";
+  "aspect-[6/5] sm:aspect-[16/9] lg:aspect-[11/5] min-h-[17.5rem] sm:min-h-[21.25rem] max-h-[26.25rem]";
 const BAR_FRAME =
-  "aspect-square sm:aspect-[3/2] lg:aspect-[4/3] min-h-[21.25rem] sm:min-h-[25rem]";
+  "aspect-square sm:aspect-[3/2] lg:aspect-[4/3] min-h-[21.25rem] sm:min-h-[25rem] max-h-[30rem]";
 
 /**
  * A canvas has no CSS, so the responsive rules have to be arithmetic here.
