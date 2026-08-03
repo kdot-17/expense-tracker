@@ -1,5 +1,5 @@
 import { Dashboard } from "@/components/dashboard/dashboard";
-import { Colophon, Masthead } from "@/components/dashboard/masthead";
+import { Masthead } from "@/components/dashboard/masthead";
 import { verifySession } from "@/lib/dal";
 
 export default async function Home() {
@@ -16,7 +16,6 @@ export default async function Home() {
     <div className="flex min-h-0 flex-1 flex-col lg:h-dvh lg:flex-none lg:overflow-hidden">
       <Masthead />
       <Dashboard />
-      <Colophon />
     </div>
   );
 }

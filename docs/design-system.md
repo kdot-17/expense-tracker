@@ -150,7 +150,7 @@ mixed: five slots take white ink and five take near-black. Check 8 enforces it.
 | `--muted` | `#6E6E6E` | `#8A8A8A` | micro-caps, axis ticks |
 | `--grid` | `#DDD9CF` | `#262626` | chart gridlines, light row rules |
 | `--rule` | `#111111` | `#FFFFFF` | every heavy border |
-| `--bar` / `--on-bar` | `#111111` / `#F5F3ED` | `#171717` / `#FFFFFF` | masthead, footer, verdict block |
+| `--bar` / `--on-bar` | `#111111` / `#F5F3ED` | `#171717` / `#FFFFFF` | masthead |
 | `--focus` | `#3D74D9` | `#3D74D9` | the focus ring — one value, both themes |
 
 `--focus` is deliberately **not** a categorical slot. The ring can land on any
@@ -392,16 +392,13 @@ src/lib/palette.ts               the canvas mirror of the tokens
 src/lib/taxonomy.ts              the ten verticals and their subtypes
 src/lib/money.ts                 paise: parse, format, compact
 src/lib/theme.ts                 theme store + bootstrap script
-src/lib/expenses.ts              data layer — sample rows, no store wired
+src/lib/expenses.ts              data layer — currently empty, no store wired
 scripts/palette-check.mjs        the validator
 ```
 
-`src/lib/expenses.ts` is the seam. `EXPENSES` holds a month of sample rows so
-the board reads with real shapes in it, while `PREVIOUS_MONTH_TOTAL_PAISE` and
-`PREVIOUS_MONTH_BY_VERTICAL` stay `0` / `null` — the month-over-month comparison
-is genuinely absent and is withheld rather than invented, so the honesty rule is
-still exercised on every run. Wiring a real source means replacing that array
-and those two constants, and changing that module and nothing else — keep the
+`src/lib/expenses.ts` is the seam. `EXPENSES` is empty, so every selector
+returns the zero case and the board renders its full scaffold with empty states.
+Wiring a real source means changing that module and nothing else — keep the
 exported signatures stable, because the whole page reads through them. Its
 shapes already match `src/db/schema.ts`: integer paise, and both a vertical and
 a subtype on every row.

@@ -34,37 +34,7 @@ export type Expense = {
 };
 
 /** Nothing is connected yet. */
-export const EXPENSES: Expense[] = [
-  { day: 1, vertical: "Loans", subtype: "Home Loan", amountPaise: 12345678 },
-  { day: 2, vertical: "Loans", subtype: "Credit Card Dues", amountPaise: 4500000 },
-  { day: 3, vertical: "Food", subtype: "Swiggy", amountPaise: 1250000 },
-  { day: 4, vertical: "Food", subtype: "Zomato", amountPaise: 890000 },
-  { day: 5, vertical: "Food", subtype: "Dining Out", amountPaise: 1560000 },
-  { day: 6, vertical: "Food", subtype: "Bistro", amountPaise: 320000 },
-  { day: 7, vertical: "Food", subtype: "EatClub", amountPaise: 210000 },
-  { day: 8, vertical: "Convenience", subtype: "Blinkit", amountPaise: 980000 },
-  { day: 9, vertical: "Convenience", subtype: "Zepto", amountPaise: 640000 },
-  { day: 10, vertical: "Convenience", subtype: "Instamart", amountPaise: 410000 },
-  { day: 11, vertical: "Subscriptions", subtype: "Electricity", amountPaise: 720000 },
-  { day: 12, vertical: "Subscriptions", subtype: "Internet", amountPaise: 149900 },
-  { day: 13, vertical: "Subscriptions", subtype: "Mobile", amountPaise: 79900 },
-  { day: 14, vertical: "Subscriptions", subtype: "Streaming", amountPaise: 64900 },
-  { day: 15, vertical: "Subscriptions", subtype: "Gas", amountPaise: 95000 },
-  { day: 16, vertical: "Transport", subtype: "Uber", amountPaise: 560000 },
-  { day: 17, vertical: "Transport", subtype: "Rapido", amountPaise: 320000 },
-  { day: 18, vertical: "Transport", subtype: "Metro", amountPaise: 180000 },
-  { day: 19, vertical: "Health", subtype: "Medicines", amountPaise: 240000 },
-  { day: 20, vertical: "Health", subtype: "Doctor", amountPaise: 150000 },
-  { day: 21, vertical: "Health", subtype: "Insurance", amountPaise: 1800000 },
-  { day: 22, vertical: "Shopping", subtype: "Clothing", amountPaise: 1450000 },
-  { day: 23, vertical: "Shopping", subtype: "Electronics", amountPaise: 3200000 },
-  { day: 24, vertical: "Shopping", subtype: "Personal Care", amountPaise: 380000 },
-  { day: 25, vertical: "Leisure", subtype: "Movies & Events", amountPaise: 240000 },
-  { day: 26, vertical: "Leisure", subtype: "Games", amountPaise: 120000 },
-  { day: 27, vertical: "People", subtype: "Gifts", amountPaise: 500000 },
-  { day: 28, vertical: "People", subtype: "Festivals", amountPaise: 750000 },
-  { day: 29, vertical: "Other", subtype: "Uncategorized", amountPaise: 90000 },
-];
+export const EXPENSES: Expense[] = [];
 
 /**
  * Last month's closing total in paise, for the month-over-month strip.

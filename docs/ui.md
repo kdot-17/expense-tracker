@@ -21,7 +21,7 @@ and how theming resolves.
 | `TabShell` | `src/components/dashboard/tab-shell.tsx` | Client |
 | `Tile` | `src/components/dashboard/tile.tsx` | Server |
 | `KpiStrip` | `src/components/dashboard/kpi-strip.tsx` | Server |
-| `Masthead` / `Colophon` | `src/components/dashboard/masthead.tsx` | Server |
+| `Masthead` | `src/components/dashboard/masthead.tsx` | Server |
 | `ThemeToggle` | `src/components/theme-toggle.tsx` | Client |
 | `VerticalPie` / `SpendLine` / `SubtypeBars` | `src/components/dashboard/charts.tsx` | Client |
 | `Treemap` | `src/components/dashboard/treemap.tsx` | Server |

@@ -69,7 +69,11 @@ export function TabShell({ tabs }: { tabs: TabDef[] }) {
                 event.preventDefault();
                 action();
               }}
-              className={`${MICRO} border-rule -mb-0.5 border-2 border-b-0 px-4 py-2.5 focus-visible:relative focus-visible:z-10 ${
+              // `-ml-0.5` pulls each tab onto its neighbour's border. Two
+              // adjacent `border-2` edges otherwise paint 4px, so the rules
+              // between tabs read heavier than the rule around them. Same
+              // trick as the granularity toggle in charts.tsx.
+              className={`${MICRO} border-rule -mb-0.5 -ml-0.5 border-2 border-b-0 px-4 py-2.5 first:ml-0 focus-visible:relative focus-visible:z-10 ${
                 selected ? "bg-rule text-page" : "text-ink-2 bg-transparent"
               }`}
             >

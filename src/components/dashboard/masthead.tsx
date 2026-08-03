@@ -36,14 +36,3 @@ export function Masthead() {
     </header>
   );
 }
-
-/** Closes the sheet with the one thing a reader still needs: the unit. */
-export function Colophon() {
-  return (
-    <footer className="bg-bar text-on-bar w-full shrink-0">
-      <div className="mx-auto w-full max-w-[1360px] px-4 py-3 sm:px-6 lg:px-10">
-        <span className={MICRO}>All figures in INR</span>
-      </div>
-    </footer>
-  );
-}
