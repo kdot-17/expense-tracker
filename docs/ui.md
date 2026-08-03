@@ -18,6 +18,9 @@ and how theming resolves.
 | --- | --- | --- |
 | `RootLayout` | `src/app/layout.tsx` | Server |
 | `Dashboard` | `src/components/dashboard/dashboard.tsx` | Server |
+| `TabShell` | `src/components/dashboard/tab-shell.tsx` | Client |
+| `Tile` | `src/components/dashboard/tile.tsx` | Server |
+| `KpiStrip` | `src/components/dashboard/kpi-strip.tsx` | Server |
 | `Masthead` / `Colophon` | `src/components/dashboard/masthead.tsx` | Server |
 | `ThemeToggle` | `src/components/theme-toggle.tsx` | Client |
 | `VerticalPie` / `SpendLine` / `SubtypeBars` | `src/components/dashboard/charts.tsx` | Client |
@@ -28,9 +31,43 @@ and how theming resolves.
 | `EmptyPlot` | `src/components/dashboard/empty.tsx` | Server |
 | `LoginForm` | `src/app/login/login-form.tsx` | Client |
 
-Only the three that need a canvas or browser state are Client Components. The
+Only the four that need a canvas or browser state are Client Components. The
 treemap looks interactive and is not — it is percentage-positioned divs, so it
-renders on the server and costs nothing on the client.
+renders on the server and costs nothing on the client. `TabShell` is a Client
+Component but its *panels* are not: they are rendered on the server and passed
+in as props, so switching tabs ships no new markup and no data to the browser.
+
+### Dashboard
+
+Decides which module sits in which tab and which grid cell, and nothing else.
+The seven modules are split by the question they answer — Overview, Breakdown,
+Ledger — rather than stacked in reading order. Layout rules that a change here
+can break, including why `flex-none` sits beside `h-dvh`, are in
+[`design-system.md` §7](design-system.md).
+
+### TabShell
+
+Follows the ARIA tabs pattern: arrow keys, `Home` and `End` move between tabs,
+only the active tab is in the tab order, and each panel is labelled by its tab.
+A row of buttons that only answers to clicks would be a worse control than the
+scrolling it replaced.
+
+It renders **only the active panel**. Keeping the others mounted behind
+`display: none` gives their Chart.js canvases a zero-size parent, which
+`maintainAspectRatio: false` never recovers from.
+
+### KpiStrip
+
+Total, movement against last month, largest vertical, days active. Every value
+is derived; with nothing recorded each is an em dash rather than `₹0`, and the
+comparison is withheld rather than shown as "no change" — see the honesty rule
+in [`AGENTS.md`](../AGENTS.md).
+
+### Tile
+
+A bordered box with a micro-caps header carrying the module's number and name.
+Its body is `overflow-hidden`, which is load-bearing rather than tidy: a module
+whose scroll box outgrows its cell paints over its neighbours otherwise.
 
 ### RootLayout
 
@@ -50,12 +87,21 @@ The band's right-hand status reads `<month> · closed` or `<month> · in progres
 from `PERIOD_IS_CLOSED`, never from a literal. It said "closed" unconditionally
 once, which claimed a month was final on its third day.
 
-### SectionHead
+### Fill mode
 
-Each numbered section is introduced by an index and a title, and nothing else.
-The explanatory paragraph that used to sit under every heading is gone: it
-restated what the chart already showed, and the charts carry their own labels.
-`SectionHead` takes no prose prop, so one cannot be added back by accident.
+`VerticalPie`, `SpendLine`, `SubtypeBars`, `Treemap` and `Ledger` take a `fill`
+prop that swaps their fixed height for one that grows into the cell they were
+dealt. Without it a module sizes itself and the board stops being a grid. The
+calendar has none — `aspect-square` cells derive height from width — so it gets
+a scroll box instead.
+
+`fill` also changes what a module can afford to draw, not only how tall it is.
+`VerticalPie`'s legend drops its index and percentage columns in `fill`, because
+a `lg:col-span-4` tile leaves the row about 200px and the fixed columns were
+squeezing the vertical's name to nothing. Below `lg` every filling module takes
+a `max-lg:min-h-*` floor: the board is a single auto-height column there, so
+`flex-1` has nothing to resolve against and would collapse the module to its
+padding.
 
 ### LoginForm
 

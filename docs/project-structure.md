@@ -12,8 +12,11 @@ src/
     globals.css        Tailwind import and theme tokens
   components/
     theme-toggle.tsx   The light/dark control (client)
-    dashboard/         One file per section of the page
-      dashboard.tsx    Section order and the headline block
+    dashboard/         One file per module of the board
+      dashboard.tsx    Which module sits in which tab and cell
+      tab-shell.tsx    The Overview/Breakdown/Ledger switcher (client)
+      tile.tsx         The bordered box a module lives in
+      kpi-strip.tsx    The four figures above the tabs
       masthead.tsx     The top band and the footer colophon
       charts.tsx       The three Chart.js canvases (client)
       treemap.tsx      Verticals containing their subtypes, to scale
@@ -50,8 +53,9 @@ docs/                  This documentation
   co-located code, not endpoints. (Metadata files are the exception:
   `favicon.ico` is served at `/favicon.ico` by filename convention alone.)
 - **`src/components/`** holds everything that renders but is not a route. The
-  dashboard is split one file per section rather than one long page, because the
-  sections are independently readable and independently broken.
+  dashboard is split one file per module rather than one long page, because the
+  modules are independently readable and independently broken. `dashboard.tsx`
+  itself only decides which module sits in which tab and which grid cell.
 - **`src/db/`** and **`src/lib/`** are outside the router entirely, so nothing in
   them can be reached by URL. The tables in `schema.ts` create no routes.
 - **`drizzle/`** holds generated SQL and is committed, so the schema is
@@ -60,10 +64,12 @@ docs/                  This documentation
 ## The two halves that have not met yet
 
 `src/db/` reads real expenses out of Postgres. `src/lib/expenses.ts` is what the
-page actually renders, and it is **empty** — no query runs. The shapes match on
-purpose (integer paise, a vertical and a subtype on every row), so connecting
-them is a matter of filling that one module. Until then the page is a complete
-scaffold showing honest empty states, and no component knows the difference.
+page actually renders, and **no query runs** — it holds a month of sample rows
+written by hand. The shapes match on purpose (integer paise, a vertical and a
+subtype on every row), so connecting them is a matter of filling that one
+module. The month-over-month constants are still empty, so the comparison stays
+genuinely absent and the board keeps rendering its honest unknown state for it;
+no component knows the difference either way.
 
 ## Imports
 

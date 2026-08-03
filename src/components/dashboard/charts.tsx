@@ -22,6 +22,25 @@ import { EmptyPlot } from "./empty";
 type Fonts = { bodyFont: string; displayFont: string };
 
 /**
+ * `fill` swaps a module's fixed chart height for one that grows into whatever
+ * the parent gives it — the board deals each module a grid cell rather than
+ * letting it pick its own height. Per the design system's sizing rule, filling
+ * still needs `min-h-0` on every flex ancestor or the canvas floors at content
+ * height and can never shrink.
+ *
+ * `FLOOR` is the other half of it, and the half that is easy to miss: the
+ * board's rows are only a definite height at `lg`. Below that the grid is one
+ * auto-sized column, `flex-1` has nothing to resolve against, and the module
+ * collapses to its padding — the subtype chart came out 70px tall on a phone.
+ * So the fixed height comes back below `lg` as a floor, and is dropped again at
+ * `lg` where the row height is the authority and a floor would push the board
+ * past the viewport on a short screen.
+ */
+type Fillable = { fill?: boolean };
+
+const FLOOR = "max-lg:min-h-[300px]";
+
+/**
  * Chart.js captures inline plugins at construction and never swaps them, so a
  * plugin that closes over the palette keeps painting the last theme's ink
  * forever. Keying every chart on the theme name forces a clean rebuild instead
@@ -55,14 +74,31 @@ const share = (part: number, whole: number) =>
 
 /* ------------------------------------------------------------------ pie -- */
 
-export function VerticalPie({ bodyFont, displayFont }: Fonts) {
+export function VerticalPie({ bodyFont, displayFont, fill = false }: Fonts & Fillable) {
   const { theme, P } = useChartTheme();
   const verticals = byVertical();
   const total = totalSpendPaise();
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-      <div className="relative h-[260px] w-full min-h-0 min-w-0 shrink-0 sm:h-[320px] lg:w-[320px]">
+    <div
+      className={
+        fill
+          ? // `items-stretch`, not `items-center`. Centring makes the legend
+            // size to its content and overflow both ends of a shorter cell,
+            // and its own `overflow-y-auto` never engages because nothing
+            // constrains its height — ten rows clipped top and bottom, with no
+            // way to scroll to either.
+            "flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:items-stretch"
+          : "flex flex-col gap-6 lg:flex-row lg:items-center"
+      }
+    >
+      <div
+        className={`relative w-full min-h-0 min-w-0 shrink-0 ${
+          fill
+            ? `flex-1 ${FLOOR} lg:h-full lg:w-[40%] lg:flex-none`
+            : "h-[260px] sm:h-[320px] lg:w-[320px]"
+        }`}
+      >
         {total === 0 ? (
           // A pie of ten zeroes draws nothing at all, which reads as a broken
           // chart rather than an empty one.
@@ -117,21 +153,51 @@ export function VerticalPie({ bodyFont, displayFont }: Fonts) {
       </div>
 
       {/* The legend is the table. It stands on its own with no chart. */}
-      <ol className="border-rule min-w-0 flex-1 border-t-2">
+      <ol
+        // In fill mode the list genuinely scrolls — ten rows in a cell that
+        // holds about eight — so it needs the same treatment as the ledger's
+        // scroll box: a scroll container nothing can focus is unreachable by
+        // keyboard, and the verticals below the fold simply cannot be read.
+        {...(fill
+          ? {
+              tabIndex: 0,
+              role: "group" as const,
+              "aria-label": "Spending by vertical, in fixed order — scrolls",
+            }
+          : {})}
+        className={`border-rule min-w-0 flex-1 border-t-2 ${
+          fill ? "min-h-0 overflow-y-auto" : ""
+        }`}
+      >
         {verticals.map((entry, i) => (
           <li
             key={entry.vertical}
             className="border-grid flex items-center gap-3 border-b py-1.5"
           >
-            <span className={`${MICRO} w-6 shrink-0 tabular-nums`}>
-              {String(i + 1).padStart(2, "0")}
-            </span>
+            {/* The index and the share are dropped in fill mode. The board
+                gives this legend about 200px, and `w-6` + `w-12` + two more
+                gaps of fixed width ate the whole row: the name is `flex-1`, so
+                it resolved to 0px and ten slices rendered as coloured swatches
+                with no names at all — the one thing the palette rules forbid.
+                Neither column is load-bearing here. The order is frozen, so the
+                number is decoration, and the pie sitting beside the row already
+                encodes the share as an angle. Name and amount stay. */}
+            {fill ? null : (
+              <span className={`${MICRO} w-6 shrink-0 tabular-nums`}>
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            )}
             <span
               aria-hidden
               className="border-rule size-4 shrink-0 border-2"
               style={{ background: `var(--slot-${i})` }}
             />
-            <span className="text-ink min-w-0 flex-1 truncate text-[13px] font-medium">
+            <span
+              // A name that still has to truncate at the narrowest board width
+              // stays recoverable rather than simply being lost.
+              title={entry.vertical}
+              className="text-ink min-w-0 flex-1 truncate text-[13px] font-medium"
+            >
               {entry.vertical}
             </span>
             {/* With nothing wired up, "₹0" and "0.0%" beside a "No expenses
@@ -143,9 +209,11 @@ export function VerticalPie({ bodyFont, displayFont }: Fonts) {
             >
               {total === 0 ? "—" : formatPaise(entry.amountPaise)}
             </span>
-            <span className="text-ink-2 w-12 shrink-0 text-right text-[12px] tabular-nums">
-              {total === 0 ? "" : `${share(entry.amountPaise, total)}%`}
-            </span>
+            {fill ? null : (
+              <span className="text-ink-2 w-12 shrink-0 text-right text-[12px] tabular-nums">
+                {total === 0 ? "" : `${share(entry.amountPaise, total)}%`}
+              </span>
+            )}
           </li>
         ))}
       </ol>
@@ -157,7 +225,7 @@ export function VerticalPie({ bodyFont, displayFont }: Fonts) {
 
 type Grain = "daily" | "weekly";
 
-export function SpendLine({ bodyFont }: Fonts) {
+export function SpendLine({ bodyFont, fill = false }: Fonts & Fillable) {
   const { theme, P } = useChartTheme();
   const [grain, setGrain] = useState<Grain>("daily");
   const daily = byDayPaise();
@@ -171,7 +239,7 @@ export function SpendLine({ bodyFont }: Fonts) {
   const values = isDaily ? daily : weekly.map((week) => week.amountPaise);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={fill ? "flex min-h-0 flex-1 flex-col gap-3" : "flex flex-col gap-4"}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className={MICRO}>
           {isDaily
@@ -199,7 +267,11 @@ export function SpendLine({ bodyFont }: Fonts) {
       </div>
 
       {hasData ? (
-        <div className="border-rule bg-card relative h-[280px] w-full min-h-0 min-w-0 border-2 p-2 sm:h-[340px]">
+        <div
+          className={`border-rule bg-card relative w-full min-h-0 min-w-0 border-2 p-2 ${
+            fill ? `flex-1 ${FLOOR}` : "h-[280px] sm:h-[340px]"
+          }`}
+        >
           <Line
             key={theme}
             aria-label={`Spend per ${isDaily ? "day" : "week"}. ${labels
@@ -285,7 +357,7 @@ export function SpendLine({ bodyFont }: Fonts) {
 
 /* ------------------------------------------------------------------ bar -- */
 
-export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
+export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fillable) {
   const { theme, P } = useChartTheme();
   const subtypes = topSubtypes(8);
   const slots = subtypes.map((entry) => slotOf(entry.vertical));
@@ -294,12 +366,21 @@ export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
   const legend = [...new Set(slots)];
 
   if (subtypes.length === 0) {
-    return <EmptyPlot className="h-[340px] sm:h-[400px]" label="No subtypes yet" />;
+    return (
+      <EmptyPlot
+        className={fill ? `min-h-0 flex-1 ${FLOOR}` : "h-[340px] sm:h-[400px]"}
+        label="No subtypes yet"
+      />
+    );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="border-rule bg-card relative h-[340px] w-full min-h-0 min-w-0 border-2 p-2 sm:h-[400px]">
+    <div className={fill ? "flex min-h-0 flex-1 flex-col gap-3" : "flex flex-col gap-4"}>
+      <div
+        className={`border-rule bg-card relative w-full min-h-0 min-w-0 border-2 p-2 ${
+          fill ? `flex-1 ${FLOOR}` : "h-[340px] sm:h-[400px]"
+        }`}
+      >
         <Bar
           key={theme}
           aria-label={`Top ${subtypes.length} subtypes by spend. ${subtypes
