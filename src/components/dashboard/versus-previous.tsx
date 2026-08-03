@@ -1,5 +1,5 @@
+import { byVertical, verticalVsPrevious } from "@/lib/expenses";
 import { formatPaise } from "@/lib/money";
-import { byGroup, groupVsPrevious, PREVIOUS_MONTH_TOTAL_PAISE } from "@/lib/transactions";
 
 import { EmptyPlot } from "./empty";
 
@@ -9,16 +9,16 @@ import { EmptyPlot } from "./empty";
  * signed number both carry the sign, so the colour is only ever identity.
  */
 export function VersusPrevious() {
-  // Without a prior month every delta is 0, and the rows would read "no change"
-  // and "identical to last month" — a comparison against a month that does not
-  // exist. The header already says "No prior month on file"; say the same here.
-  if (PREVIOUS_MONTH_TOTAL_PAISE <= 0) {
+  const deltas = verticalVsPrevious();
+  // Null means there is no per-vertical history, which is not the same as ten
+  // verticals that each happened to move by zero. Drawing the second when we
+  // have the first is the bug this guard exists for.
+  if (deltas === null) {
     return <EmptyPlot label="No prior month on file" />;
   }
 
-  const deltas = groupVsPrevious();
-  const groups = byGroup();
-  // Floored at 1: a real month where every group moved by exactly zero would
+  const verticals = byVertical();
+  // Floored at 1: a real month where every vertical moved by exactly zero would
   // otherwise divide by zero and size every bar NaN.
   const max = Math.max(1, ...deltas.map((entry) => Math.abs(entry.deltaPaise)));
 
@@ -41,15 +41,15 @@ export function VersusPrevious() {
 
           return (
             <li
-              key={entry.group}
+              key={entry.vertical}
               // Name and value columns are `minmax` in rem with a fractional
-              // ceiling: they hold a floor wide enough for the longest group
-              // name at that step — "Investments & SIP" — and then share any
-              // slack proportionally, which fixed px tracks could not do. The
-              // bar between them absorbs the rest. Below `sm` the name is
-              // allowed to wrap onto a second line instead, as it always was.
+              // ceiling: they hold a floor wide enough for the longest vertical
+              // name at that step — "Subscriptions" — and then share any slack
+              // proportionally, which fixed px tracks could not do. The bar
+              // between them absorbs the rest. Below `sm` the name is allowed
+              // to wrap onto a second line instead, as it always was.
               className="border-grid grid grid-cols-[minmax(6rem,0.9fr)_minmax(0,2fr)_minmax(4.75rem,0.7fr)] items-center gap-2 border-b py-2 sm:grid-cols-[minmax(8.75rem,0.9fr)_minmax(0,2fr)_minmax(5.75rem,0.7fr)] sm:gap-3"
-              title={`${entry.group}: ${formatPaise(groups[i].amountPaise)} this month, ${
+              title={`${entry.vertical}: ${formatPaise(verticals[i].amountPaise)} this month, ${
                 flat
                   ? "identical to last month"
                   : `${up ? "+" : "−"}${formatPaise(Math.abs(entry.deltaPaise))} on last month`
@@ -61,8 +61,8 @@ export function VersusPrevious() {
                   className="size-3 shrink-0 border-2 border-rule"
                   style={{ background: `var(--slot-${i})` }}
                 />
-                <span className="min-w-0 text-tick leading-tight font-medium break-words text-ink sm:text-note">
-                  {entry.group}
+                <span className="text-ink text-tick sm:text-note min-w-0 leading-tight font-medium break-words">
+                  {entry.vertical}
                 </span>
               </span>
 

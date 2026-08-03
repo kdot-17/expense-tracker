@@ -4,17 +4,18 @@ import { useState } from "react";
 import { Bar, Line, Pie } from "react-chartjs-2";
 
 import "@/lib/chart-setup";
-import { formatPaise, formatPaiseCompact } from "@/lib/money";
-import { merchantGroup, PALETTES, slotOf, type Palette } from "@/lib/palette";
-import { useTheme } from "@/lib/theme";
 import {
   byDayPaise,
-  byGroup,
+  byVertical,
   byWeek,
   DAYS_IN_MONTH,
-  topMerchants,
+  topSubtypes,
   totalSpendPaise,
-} from "@/lib/transactions";
+} from "@/lib/expenses";
+import { formatPaise, formatPaiseCompact } from "@/lib/money";
+import { PALETTES, type Palette } from "@/lib/palette";
+import { slotOf, subtypeLabel } from "@/lib/taxonomy";
+import { useTheme } from "@/lib/theme";
 
 import { EmptyPlot } from "./empty";
 
@@ -124,9 +125,9 @@ const share = (part: number, whole: number) =>
 
 /* ------------------------------------------------------------------ pie -- */
 
-export function GroupPie({ bodyFont, displayFont }: Fonts) {
+export function VerticalPie({ bodyFont, displayFont }: Fonts) {
   const { theme, P } = useChartTheme();
-  const groups = byGroup();
+  const verticals = byVertical();
   const total = totalSpendPaise();
 
   return (
@@ -140,7 +141,7 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
           as it needs to be. */}
       <div className="relative aspect-square w-full max-w-[20rem] min-h-0 min-w-0 shrink-0 lg:w-[38%]">
         {total === 0 ? (
-          // A pie of seven zeroes draws nothing at all, which reads as a broken
+          // A pie of ten zeroes draws nothing at all, which reads as a broken
           // chart rather than an empty one.
           <EmptyPlot className="h-full" />
         ) : (
@@ -148,18 +149,21 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
             key={theme}
             // react-chartjs-2 puts role="img" on the canvas itself but gives it
             // no name, so without this every chart is an unlabelled graphic.
-            aria-label={`Spending by group. Total ${formatPaise(total)}. ${groups
+            aria-label={`Spending by vertical. Total ${formatPaise(total)}. ${verticals
               .map(
                 (e) =>
-                  `${e.group}: ${formatPaise(e.amountPaise)}, ${share(e.amountPaise, total)} per cent`,
+                  `${e.vertical}: ${formatPaise(e.amountPaise)}, ${share(
+                    e.amountPaise,
+                    total,
+                  )} per cent`,
               )
               .join(". ")}`}
             data={{
-              labels: groups.map((entry) => entry.group),
+              labels: verticals.map((entry) => entry.vertical),
               datasets: [
                 {
-                  data: groups.map((entry) => entry.amountPaise),
-                  backgroundColor: groups.map((_, i) => P.group[i]),
+                  data: verticals.map((entry) => entry.amountPaise),
+                  backgroundColor: verticals.map((_, i) => P.group[i]),
                   borderColor: P.rule,
                   borderWidth: 2,
                   hoverBorderColor: P.rule,
@@ -174,6 +178,7 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
               plugins: {
                 // Replaced by the numbered list beside it, which also carries
                 // the amounts — no slice depends on colour to be identified.
+                // At ten slices that list is doing most of the work.
                 legend: { display: false },
                 tooltip: {
                   ...tooltipStyle(P, bodyFont),
@@ -190,10 +195,10 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
 
       {/* The legend is the table. It stands on its own with no chart. */}
       <ol className="border-rule min-w-0 flex-1 basis-[18rem] border-t-2">
-        {groups.map((entry, i) => (
+        {verticals.map((entry, i) => (
           <li
-            key={entry.group}
-            className="border-grid flex items-center gap-3 border-b py-2"
+            key={entry.vertical}
+            className="border-grid flex items-center gap-3 border-b py-1.5"
           >
             <span className={`${MICRO} w-6 shrink-0 tabular-nums`}>
               {String(i + 1).padStart(2, "0")}
@@ -204,11 +209,11 @@ export function GroupPie({ bodyFont, displayFont }: Fonts) {
               style={{ background: `var(--slot-${i})` }}
             />
             <span className="text-ink text-note min-w-0 flex-1 truncate font-medium">
-              {entry.group}
+              {entry.vertical}
             </span>
-            {/* With nothing wired up, "₹0" and "0.0%" beside a "No transactions
-                yet" plot would assert we checked and the group is empty. We did
-                not check anything. */}
+            {/* With nothing wired up, "₹0" and "0.0%" beside a "No expenses
+                yet" plot would assert we checked and the vertical is empty. We
+                did not check anything. */}
             <span
               className="text-ink text-lede shrink-0 tabular-nums"
               style={{ fontFamily: displayFont }}
@@ -285,15 +290,21 @@ export function SpendLine({ bodyFont }: Fonts) {
                 {
                   label: isDaily ? "Spend per day" : "Spend per week",
                   data: values,
-                  borderColor: P.group[4],
+                  // The ramp's top step, NOT a categorical slot. This series is
+                  // total spend over time — it belongs to no vertical, so
+                  // borrowing a slot hue would tell a reader who has just
+                  // learned "sky blue is Loans" that this line is about Loans.
+                  // The ramp is the design's magnitude encoding, which is what
+                  // this is, and it ties the line to the calendar beside it.
+                  borderColor: P.ramp[4],
                   borderWidth: 3,
                   tension: 0,
                   fill: true,
-                  backgroundColor: `${P.group[4]}29`, // 16% — the area wash
+                  backgroundColor: `${P.ramp[4]}29`, // 16% — the area wash
                   pointStyle: "rect",
                   pointRadius: isDaily ? 0 : 7,
                   pointHoverRadius: 7,
-                  pointBackgroundColor: P.group[4],
+                  pointBackgroundColor: P.ramp[4],
                   pointBorderColor: P.rule,
                   pointBorderWidth: 2,
                 },
@@ -353,15 +364,16 @@ export function SpendLine({ bodyFont }: Fonts) {
 
 /* ------------------------------------------------------------------ bar -- */
 
-export function MerchantBars({ bodyFont, displayFont }: Fonts) {
+export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
   const { theme, P } = useChartTheme();
-  const merchants = topMerchants(8);
-  const slots = merchants.map((entry) => slotOf(merchantGroup(entry.merchant)));
+  const subtypes = topSubtypes(8);
+  const slots = subtypes.map((entry) => slotOf(entry.vertical));
+  // Which verticals are actually on this axis — a legend row for one that is
+  // not drawn would document an encoding the reader cannot see.
   const legend = [...new Set(slots)];
-  const groupNames = merchants.map((entry) => merchantGroup(entry.merchant));
 
-  if (merchants.length === 0) {
-    return <EmptyPlot className={BAR_FRAME} label="No merchants yet" />;
+  if (subtypes.length === 0) {
+    return <EmptyPlot className={BAR_FRAME} label="No subtypes yet" />;
   }
 
   return (
@@ -371,15 +383,18 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
       >
         <Bar
           key={theme}
-          aria-label={`Top ${merchants.length} merchants by spend. ${merchants
-            .map((e, i) => `${e.merchant}, ${groupNames[i]}: ${formatPaise(e.amountPaise)}`)
+          aria-label={`Top ${subtypes.length} subtypes by spend. ${subtypes
+            .map(
+              (e) =>
+                `${e.name}, ${e.vertical}: ${formatPaise(e.amountPaise)}`,
+            )
             .join(". ")}`}
           data={{
-            labels: merchants.map((entry) => entry.merchant.toUpperCase()),
+            labels: subtypes.map((entry) => subtypeLabel(entry).toUpperCase()),
             datasets: [
               {
                 label: "Spend",
-                data: merchants.map((entry) => entry.amountPaise),
+                data: subtypes.map((entry) => entry.amountPaise),
                 backgroundColor: slots.map((slot) => P.group[slot]),
                 borderColor: P.rule,
                 borderWidth: 2,
@@ -410,7 +425,9 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
                 ...tooltipStyle(P, bodyFont),
                 callbacks: {
                   label: (ctx) =>
-                    `${formatPaise(ctx.parsed.x ?? 0)} · ${groupNames[ctx.dataIndex]}`,
+                    `${formatPaise(ctx.parsed.x ?? 0)} · ${
+                      subtypes[ctx.dataIndex]?.vertical ?? ""
+                    }`,
                 },
               },
             },
@@ -474,7 +491,7 @@ export function MerchantBars({ bodyFont, displayFont }: Fonts) {
               className="border-rule size-3.5 border-2"
               style={{ background: `var(--slot-${slot})` }}
             />
-            <span className={MICRO}>{byGroup()[slot].group}</span>
+            <span className={MICRO}>{byVertical()[slot].vertical}</span>
           </li>
         ))}
       </ul>

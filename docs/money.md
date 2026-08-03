@@ -11,7 +11,7 @@ ever holds:
 | Layer | Unit |
 | --- | --- |
 | `expenses.amount_paise` in Postgres | integer paise |
-| `src/lib/transactions.ts` — the data layer and its selectors | integer paise |
+| `src/lib/expenses.ts` — the data layer and its selectors | integer paise |
 | Props passed into components, values handed to Chart.js | integer paise |
 | What the reader sees on screen | rupees |
 

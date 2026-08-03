@@ -23,13 +23,17 @@ The page is a document you read top to bottom, not a dashboard you scan.
 | Light | Dark |
 |---|---|
 | ![Light masthead](screenshots/light-masthead.jpg) | ![Dark masthead](screenshots/dark-masthead.jpg) |
+| ![Light treemap](screenshots/light-treemap.jpg) | ![Dark treemap](screenshots/dark-treemap.jpg) |
 | ![Light charts](screenshots/light-charts.jpg) | ![Dark charts](screenshots/dark-charts.jpg) |
 
-> These were captured during the design phase, against sample data, and are kept
-> as the **visual reference for what a populated page should look like**. The app
-> currently ships with no data wired, so the running page shows the same layout
-> with empty states. The dark shots predate nothing — they are the true-black
-> theme as shipped.
+> Captured against temporary sample data, then reverted, and kept as the
+> **visual reference for what a populated page should look like**. The app ships
+> with no data wired, so the running page shows this same layout in its empty
+> states.
+>
+> They are re-shot whenever the palette or the taxonomy changes — the set above
+> is the ten-vertical palette, and any screenshot showing seven slots or the
+> words "Rent & home" is stale and should be replaced, not trusted.
 
 Both themes are first-class. Neither is "the real one with a filter over it" —
 the ramp inverts direction, the rules invert polarity, and the categorical hexes
@@ -49,7 +53,7 @@ These are the rules that break something real when violated.
    form controls in `globals.css`. A rounded card is not this design.
 2. **Rules are 2px and they are ink**, not a grey hairline. `--rule` is the ink
    colour, which means it flips to light on the dark theme. `border-rule`.
-3. **Colour is identity only.** Slot 0 is Rent in both themes and every month.
+3. **Colour is identity only.** Slot 0 is Food in both themes and every month.
    Never re-sort a series by value, never colour a bar by how big it is, never
    use red for "bad" — this is a spend tracker, "up" is not self-evidently bad.
 4. **Every coloured series is also directly labelled.** Colour is never the only
@@ -83,21 +87,44 @@ with no JavaScript and no re-render**. Only the canvas needs the JS palette.
 
 ### Slots — frozen, validated, never re-ordered
 
-| Slot | Group | Light | Dark |
-|---|---|---|---|
-| 0 | Rent & home | `#E93A51` | `#E54154` |
-| 1 | Food & dining | `#A05001` | `#ED9E2F` |
-| 2 | Groceries | `#AD8604` | `#A48118` |
-| 3 | Transport | `#106B07` | `#169F65` |
-| 4 | Bills & recharge | `#2145CA` | `#2981FB` |
-| 5 | Investments & SIP | `#9760F2` | `#CBA1FA` |
-| 6 | Other | `#6E6E6E` | `#9A9A9A` |
+**One slot per vertical.** Slot N is `VERTICAL_ORDER[N]` in
+[`src/lib/taxonomy.ts`](../src/lib/taxonomy.ts), which mirrors the seeded
+taxonomy in [database.md](database.md). The two orders must not drift.
 
-Slot 6 is deliberately at **zero chroma** so it reads as "not a category" rather
-than as a seventh thing.
+| Slot | Vertical | Hue | Light | Dark |
+|---|---|---|---|---|
+| 0 | Food | red | `#CF3651` | `#FC3F75` |
+| 1 | Convenience | gold | `#909000` | `#87871B` |
+| 2 | Subscriptions | indigo | `#1B24D8` | `#6C75E1` |
+| 3 | Transport | green | `#006336` | `#51E16C` |
+| 4 | Health | teal | `#009990` | `#2D907E` |
+| 5 | Shopping | violet | `#AB63C6` | `#D8ABEA` |
+| 6 | Leisure | magenta | `#87096C` | `#CF51C6` |
+| 7 | People | ochre | `#906300` | `#F3AB1B` |
+| 8 | Loans | sky | `#1275A2` | `#36BDFC` |
+| 9 | Other | grey | `#6E6E6E` | `#9A9A9A` |
+
+Slot 9 is deliberately at **zero chroma** so it reads as "not a category" rather
+than as a tenth thing. It is last, not ninth as in the seed migration, because
+the achromatic slot has to sit at the end for the adjacency check to mean what
+it says.
+
+**A slot keeps its hue across themes.** The dark value is a brighter sibling of
+the light one, never a different colour — Transport is the green one whichever
+theme you are in. Two independently-solved palettes would each pass every check
+and still destroy identity the moment someone hit the toggle.
 
 Each slot has a matching `--on-N` — the text colour measured to clear 4.5:1 on
-that block. Use it; do not guess white.
+that block. Use it; do not guess white. On the light theme it is genuinely
+mixed: five slots take white ink and five take near-black. Check 8 enforces it.
+
+> **Nine chromatic slots was not a free upgrade from six.** The set above was
+> solved for against all eight checks simultaneously, in both themes, with the
+> hues pinned in pairs. It passes at full strength — no threshold was relaxed to
+> make room for the extra verticals — but the light theme's worst adjacent pair
+> clears deuteranopia by **ΔE 12.1 against a floor of 12**. There is almost no
+> headroom left. Adding an eleventh vertical means re-solving the whole set, not
+> appending a colour to the end.
 
 ### Surfaces
 
@@ -126,15 +153,33 @@ than the page (`#171717` on `#000000`) so the band still reads as a band.
 
 One hue, five fixed steps, and it **reverses direction between themes** —
 light→dark on the light sheet, dark→light on the dark one, so "more" is always
-"further from the page". Cuts are fixed round numbers (`rampStep`), not
-quantiles, because a reader can hold five round numbers. `₹0` days are not
-step 0 — they are struck out with a hatch, so absence reads as absence.
+"further from the page". Cuts are fixed round numbers (`rampStep`, which takes
+paise like everything else), not quantiles, because a reader can hold five round
+numbers. `₹0` days are not step 0 — they are struck out with a hatch, so absence
+reads as absence.
 
 The cuts are in **paise**, so ₹1k is `1_00_000`. `RAMP_LABELS` prints the same
 five bands in rupees for the key, and the two lists have to be edited together —
 a key that disagrees with the shading is worse than no key.
 
-### The six checks
+The ramp is also what the **spend-over-time line** is drawn in (`ramp[4]`), not a
+categorical slot. That series is total spend and belongs to no vertical, so a
+slot hue would tell a reader who has just learned "sky blue is Loans" that the
+line is about Loans. Both views encode magnitude, so both use the ramp family.
+
+### The treemap's smallest cells
+
+Two defences against a clipped figure, because `overflow-hidden` slicing through
+digits turns `₹1,340.08` into a readable-but-wrong `₹1,340.0`.
+
+The `sm` tier and the whole narrow layout **abbreviate** with
+`formatPaiseCompact`, keeping the exact amount in each cell's `title`. Below
+**2% of the month** an `xs` tier drops the amount entirely and carries the name
+only: the taxonomy has 47 subtypes rather than 10 categories, so a cell that
+small cannot hold even an abbreviated number. The figure is still in the
+tooltip, the vertical table and the ledger.
+
+### The eight checks
 
 `npm run palette` runs these against both themes and exits non-zero on failure:
 
@@ -148,12 +193,23 @@ a key that disagrees with the shading is worse than no key.
 | 5 | Surface contrast | every slot ≥ 3:1 on page *and* card |
 | 6 | Ink contrast | ink ≥ 7:1, ink-2 ≥ 4.5:1, muted ≥ 3:1 |
 | 7 | Focus ring | `--focus` ≥ 3:1 on page, card **and** bar (WCAG 1.4.11) |
+| 8 | Label contrast | every `--on-N` ≥ 4.5:1 on its own slot |
 
-**Why 3 is split.** Six distinct hues cannot all be pairwise separable under full
+The slot **count is read from `globals.css`**, not hardcoded, so adding a
+vertical cannot leave its colour silently unchecked. The last slot is treated as
+"Other" and the rest as the categorical set.
+
+**Why 3 is split.** Distinct hues cannot all be pairwise separable under full
 dichromacy — green and red-orange *are* the same colour to a deuteranope, and no
 amount of stepping fixes it. So the hard rule is on pairs that physically touch
 (neighbouring arcs, neighbouring legend rows); the global rule only forbids a
-pair being invisible to *everyone*. Direct labelling covers the rest.
+pair being invisible to *everyone*. Direct labelling covers the rest, which is
+why every chart here also ships a table or a labelled axis.
+
+**Why 8 exists.** The treemap paints a subtype name and an amount straight onto
+a coloured block, so each slot needs an ink that is readable *on that slot*.
+Checks 1–7 never look at that pair. With ten slots and a mixed light/dark ink
+split, eyeballing it stopped being realistic.
 
 > The palette that shipped in the original mockup **failed** this: orange and
 > gold sat at 2.37:1 against the page, well under the 3:1 floor. The current set
@@ -198,7 +254,6 @@ font setting outright, so a reader who asks for larger text gets nothing.
 |---|---|
 | `text-masthead` | the masthead cell |
 | `text-total` | the "Total debited" block |
-| `text-rail` | one stat-rail cell |
 | `text-section` | a section head's column |
 | `text-statement` | the full-bleed statement band |
 | `text-signin` | the sign-in card |
@@ -212,8 +267,8 @@ lives in — which it did, until these tokens replaced the `vw` clamps.
 
 **Every one of these requires an ancestor with `@container`.** Without one the
 unit falls back to the small viewport, which is just the old behaviour: degraded,
-not broken. The containers are on the masthead cells, each rail cell, each
-section head, the statement band, both calendar grids, and the treemap frame.
+not broken. The containers are on the masthead cells, each section head, the
+statement band, the sign-in card, both calendar grids, and the treemap frame.
 
 `--text-total` is the one whose coefficient is derived rather than chosen — see
 the note beside it in `globals.css`. Raising it makes large amounts overflow.
@@ -332,15 +387,25 @@ src/lib/chart-setup.ts           Chart.js registration — see §5
 src/lib/fonts.ts                 the two faces — see §4
 src/lib/money.ts                 paise → rupee formatting — see §2 rule 6
 src/lib/palette.ts               the canvas mirror of the tokens
+src/lib/taxonomy.ts              the ten verticals and their subtypes
+src/lib/money.ts                 paise: parse, format, compact
 src/lib/theme.ts                 theme store + bootstrap script
-src/lib/transactions.ts          data layer — currently empty, no store wired
+src/lib/expenses.ts              data layer — currently empty, no store wired
 scripts/palette-check.mjs        the validator
 ```
 
-`src/lib/transactions.ts` is the seam. `TRANSACTIONS` is empty, so every
-selector returns the zero case and the page renders its full scaffold with empty
-states. Wiring a real source means changing that module and nothing else — keep
-the exported signatures stable, because the whole page reads through them.
+`src/lib/expenses.ts` is the seam. `EXPENSES` is empty, so every selector
+returns the zero case and the page renders its full scaffold with empty states.
+Wiring a real source means changing that module and nothing else — keep the
+exported signatures stable, because the whole page reads through them. Its
+shapes already match `src/db/schema.ts`: integer paise, and both a vertical and
+a subtype on every row.
+
+`src/lib/taxonomy.ts` mirrors `drizzle/0001_seed_taxonomy.sql`. The migration is
+the authority; if they disagree, the migration is right. A subtype is always a
+`(vertical, name)` pair, never a bare string — `Others` exists under Food,
+Convenience *and* Transport, so a bare name silently merges three different
+things.
 
 It holds paise, matching the `expenses.amount_paise` column it will eventually
 read from, so wiring the database up is a change of source and not a change of

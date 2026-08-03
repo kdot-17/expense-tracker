@@ -37,23 +37,30 @@
   --bar: #111111;
   --on-bar: #f5f3ed;
 
-  /* categorical slots — frozen order, validated. Never re-order. */
-  --slot-0: #e93a51; /* Rent & home        */
-  --slot-1: #a05001; /* Food & dining      */
-  --slot-2: #ad8604; /* Groceries          */
-  --slot-3: #106b07; /* Transport          */
-  --slot-4: #2145ca; /* Bills & recharge   */
-  --slot-5: #9760f2; /* Investments & SIP  */
-  --slot-6: #6e6e6e; /* Other — zero chroma on purpose */
+  /* categorical slots — one per vertical, frozen order, validated.
+     Never re-order: slot N is VERTICAL_ORDER[N] in src/lib/taxonomy.ts. */
+  --slot-0: #cf3651; /* Food          */
+  --slot-1: #909000; /* Convenience   */
+  --slot-2: #1b24d8; /* Subscriptions */
+  --slot-3: #006336; /* Transport     */
+  --slot-4: #009990; /* Health        */
+  --slot-5: #ab63c6; /* Shopping      */
+  --slot-6: #87096c; /* Leisure       */
+  --slot-7: #906300; /* People        */
+  --slot-8: #1275a2; /* Loans         */
+  --slot-9: #6e6e6e; /* Other — zero chroma on purpose */
 
   /* text that clears 4.5:1 on the matching slot block. Measured, not guessed. */
-  --on-0: #111111;
-  --on-1: #ffffff;
-  --on-2: #111111;
+  --on-0: #ffffff;
+  --on-1: #111111;
+  --on-2: #ffffff;
   --on-3: #ffffff;
-  --on-4: #ffffff;
+  --on-4: #111111;
   --on-5: #111111;
   --on-6: #ffffff;
+  --on-7: #ffffff;
+  --on-8: #ffffff;
+  --on-9: #ffffff;
 
   /* calendar ramp — one hue, five steps */
   --ramp-0: #d0e6ff;
@@ -82,13 +89,16 @@
   --bar: #171717;
   --on-bar: #ffffff;
 
-  --slot-0: #e54154;
-  --slot-1: #ed9e2f;
-  --slot-2: #a48118;
-  --slot-3: #169f65;
-  --slot-4: #2981fb;
-  --slot-5: #cba1fa;
-  --slot-6: #9a9a9a;
+  --slot-0: #fc3f75;
+  --slot-1: #87871b;
+  --slot-2: #6c75e1;
+  --slot-3: #51e16c;
+  --slot-4: #2d907e;
+  --slot-5: #d8abea;
+  --slot-6: #cf51c6;
+  --slot-7: #f3ab1b;
+  --slot-8: #36bdfc;
+  --slot-9: #9a9a9a;
 
   --on-0: #111111;
   --on-1: #111111;
@@ -97,6 +107,9 @@
   --on-4: #111111;
   --on-5: #111111;
   --on-6: #111111;
+  --on-7: #111111;
+  --on-8: #111111;
+  --on-9: #111111;
 
   --ramp-0: #1a2e4c;
   --ramp-1: #284d83;
@@ -127,13 +140,16 @@
     --bar: #171717;
     --on-bar: #ffffff;
 
-    --slot-0: #e54154;
-    --slot-1: #ed9e2f;
-    --slot-2: #a48118;
-    --slot-3: #169f65;
-    --slot-4: #2981fb;
-    --slot-5: #cba1fa;
-    --slot-6: #9a9a9a;
+    --slot-0: #fc3f75;
+    --slot-1: #87871b;
+    --slot-2: #6c75e1;
+    --slot-3: #51e16c;
+    --slot-4: #2d907e;
+    --slot-5: #d8abea;
+    --slot-6: #cf51c6;
+    --slot-7: #f3ab1b;
+    --slot-8: #36bdfc;
+    --slot-9: #9a9a9a;
 
     --on-0: #111111;
     --on-1: #111111;
@@ -142,6 +158,9 @@
     --on-4: #111111;
     --on-5: #111111;
     --on-6: #111111;
+    --on-7: #111111;
+    --on-8: #111111;
+    --on-9: #111111;
 
     --ramp-0: #1a2e4c;
     --ramp-1: #284d83;
@@ -179,6 +198,9 @@
   --color-slot-4: var(--slot-4);
   --color-slot-5: var(--slot-5);
   --color-slot-6: var(--slot-6);
+  --color-slot-7: var(--slot-7);
+  --color-slot-8: var(--slot-8);
+  --color-slot-9: var(--slot-9);
 
   --font-display: var(--font-brut-display), Impact, "Arial Narrow", sans-serif;
   --font-sans: var(--font-brut-body), ui-sans-serif, system-ui, sans-serif;
@@ -225,7 +247,6 @@
      of headline. A ₹2.14 crore month is not the case to design the masthead
      around, so it is accepted that it would overflow. */
   --text-total: clamp(2.25rem, 18cqi, 5.6rem);
-  --text-rail: clamp(1.5rem, 13cqi, 2.4rem);
   --text-section: clamp(1.35rem, 7cqi, 2.35rem);
   --text-statement: clamp(1.8rem, 8cqi, 3.4rem);
   /* The sign-in card is `max-w-sm`, so its width stops growing long before the

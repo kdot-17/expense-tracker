@@ -167,6 +167,12 @@ starting point, not a fixed list — everything here is editable in the app.
 | **Other** | Uncategorized |
 | **Loans** | Credit Card Dues, Education Loan, Home Loan, Personal Loan, Vehicle Loan |
 
+The UI mirrors this list in [`src/lib/taxonomy.ts`](../src/lib/taxonomy.ts) so
+it can lay out and colour the tree before any expense exists. This file is the
+authority; if the two disagree, this one is right. One difference is deliberate:
+the UI puts `Other` last rather than ninth, because it takes the achromatic
+colour slot. See [design-system.md](design-system.md).
+
 **Food and Convenience are filed by platform**, not by kind of purchase, because
 the question worth answering is which app the money goes to. The other verticals
 are filed by kind. Nothing in the schema cares, but it does mean the Food chart

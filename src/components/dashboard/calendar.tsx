@@ -1,4 +1,3 @@
-import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import {
   byDayPaise,
   DAYS_IN_MONTH,
@@ -6,7 +5,8 @@ import {
   weekdayMediansPaise,
   WEEKDAYS_LONG,
   WEEKDAYS_SHORT,
-} from "@/lib/transactions";
+} from "@/lib/expenses";
+import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import { RAMP_LABELS, rampStep } from "@/lib/palette";
 
 /** Card cell, hard ink slashes. A blank day should look struck out, not just
