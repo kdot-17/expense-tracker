@@ -206,7 +206,7 @@ if (process.argv.includes("--all")) {
         ? [...m[1].matchAll(/#[0-9a-fA-F]{6}/g)].map((x) => x[0].toUpperCase())
         : [];
     };
-    return { groups, scalar, ramp: list("ramp") };
+    return { groups, scalar, ramp: list("ramp"), groupOn: list("groupOn") };
   };
 
   const mismatches = [];
@@ -232,6 +232,18 @@ if (process.argv.includes("--all")) {
         );
       }
     });
+    t.groupOn.forEach((hex, i) => {
+      if (cssVars[`on-${i}`] !== hex) {
+        mismatches.push(
+          `${theme} on-${i}: globals.css ${cssVars[`on-${i}`]} vs palette.ts ${hex}`,
+        );
+      }
+    });
+    if (t.groups.length !== t.groupOn.length) {
+      mismatches.push(
+        `${theme}: palette.ts has ${t.groups.length} slots but ${t.groupOn.length} on-slot inks`,
+      );
+    }
     for (const [cssKey, tsKey] of [
       ["page", "page"],
       ["card", "card"],
@@ -259,18 +271,33 @@ if (process.argv.includes("--all")) {
     mismatches.push("globals.css declares no --focus token — check 7 cannot run");
   }
 
-  const run = (vars) =>
-    spawnCheck({
+  // Slot count is read from the file rather than hardcoded, so adding a
+  // vertical does not silently leave the new slot unchecked. The last slot is
+  // "Other" — the achromatic one — and the rest are the categorical set.
+  const slotCount = (n) => {
+    let i = 0;
+    while (n[`slot-${i}`]) i += 1;
+    return i;
+  };
+
+  const run = (vars) => {
+    const count = slotCount(vars);
+    if (count < 2) {
+      return { ok: false, out: `  parsed ${count} slots from globals.css — selector changed?\n` };
+    }
+    return spawnCheck({
       page: vars.page,
       card: vars.card,
-      slots: [0, 1, 2, 3, 4, 5].map((i) => vars[`slot-${i}`]),
-      other: vars["slot-6"],
+      slots: Array.from({ length: count - 1 }, (_, i) => vars[`slot-${i}`]),
+      other: vars[`slot-${count - 1}`],
+      on: Array.from({ length: count }, (_, i) => vars[`on-${i}`]),
       ink: vars.ink,
       ink2: vars["ink-2"],
       muted: vars.muted,
       focus: focusToken,
       bar: vars.bar,
     });
+  };
 
   const { execFileSync } = await import("node:child_process");
   function spawnCheck(cfg) {
@@ -282,6 +309,7 @@ if (process.argv.includes("--all")) {
           "--page", cfg.page, "--card", cfg.card,
           "--slots", cfg.slots.join(","), "--other", cfg.other,
           "--ink", cfg.ink, "--ink2", cfg.ink2, "--muted", cfg.muted,
+          ...(cfg.on?.every(Boolean) ? ["--on", cfg.on.join(",")] : []),
           ...(cfg.focus ? ["--focus", cfg.focus] : []),
           ...(cfg.bar ? ["--bar", cfg.bar] : []),
         ],
@@ -504,6 +532,37 @@ const add = (name, ok, detail) => results.push({ name, ok, detail });
       "7 FOCUS RING",
       worst >= 3,
       `${args.focus} vs ${rows.join(" · ")} (all ≥ 3:1, WCAG 1.4.11)`,
+    );
+  }
+}
+
+// 8 — the ink that sits ON a slot.
+//
+// The treemap paints a category name and an amount straight onto a coloured
+// block, and the legend swatches do the same at small sizes. Every slot
+// therefore ships a matching --on-N, and this is what proves each one is
+// actually readable rather than assumed to be. Ten slots is too many to keep
+// checking by eye.
+{
+  if (args.on) {
+    const on = args.on.split(",").map((s) => s.trim());
+    const rows = [];
+    const bad = [];
+    ALL.forEach((slot, i) => {
+      const ink = on[i];
+      if (!ink) {
+        bad.push(`slot ${i} has no --on-${i}`);
+        return;
+      }
+      const r = contrast(ink, slot);
+      if (r < 4.5) bad.push(`--on-${i} ${ink} on ${slot} is ${r.toFixed(2)}:1`);
+      rows.push(`${i}:${r.toFixed(1)}`);
+    });
+    add(
+      "8 LABEL CONTRAST",
+      bad.length === 0,
+      `--on-N vs its slot ${rows.join(" ")} (all ≥ 4.5:1)` +
+        (bad.length ? `  ← ${bad.join("; ")}` : ""),
     );
   }
 }

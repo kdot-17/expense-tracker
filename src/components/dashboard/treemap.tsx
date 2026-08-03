@@ -1,36 +1,26 @@
-import {
-  byCategory,
-  byGroup,
-  CATEGORY_TO_GROUP,
-  formatINR,
-  totalSpend,
-  type Category,
-} from "@/lib/transactions";
+import { bySubtype, byVertical, totalSpend } from "@/lib/expenses";
+import { formatPaiseWhole } from "@/lib/money";
+import { slotOf, subtypeKey, type SubtypeRef } from "@/lib/taxonomy";
+
 import { EmptyPlot } from "./empty";
-import { slotOf } from "@/lib/palette";
 import { squarify, type Rect } from "./squarify";
 
-/** Poster names. The ledger at the foot of the page carries the full ones. */
-const SHORT: Record<Category, string> = {
-  Rent: "RENT",
-  Investments: "SIP",
-  Groceries: "GROCERIES",
-  "Food delivery": "DELIVERY",
-  "Eating out": "EATING OUT",
-  Transport: "TRANSPORT",
-  Bills: "BILLS",
-  Shopping: "SHOPPING",
-  Health: "HEALTH",
-  Entertainment: "TICKETS",
-};
-
-type Tier = "xl" | "lg" | "md" | "sm";
+/**
+ * `xs` exists because the taxonomy has 47 subtypes, not 10 categories. A cell
+ * at half a per cent is a few pixels tall, and the old four tiers all drew a
+ * name *and* an amount into it — which `overflow-hidden` then sliced through
+ * the digits, so `₹920` rendered as something that could be read as `₹92`. A
+ * clipped number is worse than an absent one, so the smallest cells carry the
+ * name only and leave the figure to the tooltip, the pie table and the ledger.
+ */
+type Tier = "xl" | "lg" | "md" | "sm" | "xs";
 
 function tierOf(share: number): Tier {
   if (share >= 20) return "xl";
   if (share >= 12) return "lg";
   if (share >= 6) return "md";
-  return "sm";
+  if (share >= 2) return "sm";
+  return "xs";
 }
 
 const LABEL_SIZE: Record<Tier, string> = {
@@ -38,6 +28,7 @@ const LABEL_SIZE: Record<Tier, string> = {
   lg: "text-[1.15rem] md:text-[1.6rem] lg:text-[2.1rem]",
   md: "text-[0.85rem] md:text-[1.05rem] lg:text-[1.4rem]",
   sm: "text-[0.65rem] md:text-[0.8rem] lg:text-[0.95rem]",
+  xs: "text-[0.5rem] md:text-[0.6rem] lg:text-[0.7rem]",
 };
 
 const AMOUNT_SIZE: Record<Tier, string> = {
@@ -45,6 +36,7 @@ const AMOUNT_SIZE: Record<Tier, string> = {
   lg: "text-[1.5rem] md:text-[2.1rem] lg:text-[2.9rem]",
   md: "text-[1.05rem] md:text-[1.35rem] lg:text-[1.8rem]",
   sm: "text-[0.8rem] md:text-[1rem] lg:text-[1.25rem]",
+  xs: "", // never drawn
 };
 
 const PAD: Record<Tier, string> = {
@@ -52,6 +44,7 @@ const PAD: Record<Tier, string> = {
   lg: "p-2.5 md:p-4 lg:p-5",
   md: "p-2 md:p-3",
   sm: "p-1 md:p-2",
+  xs: "p-1",
 };
 
 function pct(value: number, whole: number): string {
@@ -59,20 +52,19 @@ function pct(value: number, whole: number): string {
 }
 
 function Cell({
-  category,
-  amount,
+  subtype,
+  amountPaise,
   share,
   rect,
   frame,
 }: {
-  category: Category;
-  amount: number;
+  subtype: SubtypeRef;
+  amountPaise: number;
   share: number;
   rect: Rect;
   frame: Rect;
 }) {
-  const slot = slotOf(CATEGORY_TO_GROUP[category]);
-  const ink = `var(--on-${slot})`;
+  const slot = slotOf(subtype.vertical);
   const tier = tierOf(share);
 
   return (
@@ -84,46 +76,59 @@ function Cell({
         width: pct(rect.w, frame.w),
         height: pct(rect.h, frame.h),
         background: `var(--slot-${slot})`,
-        color: ink,
+        // Measured against this exact slot by `npm run palette` check 8, not
+        // guessed — half the slots need dark ink and half need light.
+        color: `var(--on-${slot})`,
         // Adjacent cells each draw 1px inside and 1px out, so every internal
         // split lands as exactly one 2px rule.
         outline: "2px solid var(--rule)",
         outlineOffset: "-1px",
       }}
-      title={`${category} — ${formatINR(amount)}, ${share.toFixed(1)}% of the month`}
+      title={`${subtype.vertical} · ${subtype.name} — ${formatPaiseWhole(
+        amountPaise,
+      )}, ${share.toFixed(1)}% of the month`}
     >
-      <span className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] md:text-[0.65rem]">
-        {share.toFixed(1)}%
-      </span>
+      {tier === "xs" ? null : (
+        <span className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] md:text-[0.65rem]">
+          {share.toFixed(1)}%
+        </span>
+      )}
 
       <span className="flex flex-col gap-0.5">
         <span
-          className={`leading-[0.85] tracking-[-0.03em] ${LABEL_SIZE[tier]}`}
+          className={`leading-[0.85] tracking-[-0.03em] uppercase ${LABEL_SIZE[tier]}`}
           style={{ fontFamily: "var(--font-display)" }}
         >
-          {SHORT[category]}
+          {subtype.name}
         </span>
-        <span
-          className={`leading-[0.85] tracking-[-0.04em] tabular-nums ${AMOUNT_SIZE[tier]}`}
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          {formatINR(amount)}
-        </span>
+        {tier === "xs" ? null : (
+          <span
+            className={`leading-[0.85] tracking-[-0.04em] tabular-nums ${AMOUNT_SIZE[tier]}`}
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {formatPaiseWhole(amountPaise)}
+          </span>
+        )}
       </span>
     </div>
   );
 }
 
 /**
- * Two levels: the seven frozen groups get squarified into the frame, then each
- * group's own categories are squarified inside it. One colour per group, so a
- * region of a single hue is a single group; the 6px black gutters mark where
- * one group stops and the next begins.
+ * Two levels, and they are the two real levels of the taxonomy: the ten
+ * verticals are squarified into the frame, then each vertical's own subtypes
+ * are squarified inside it. One colour per vertical, so a region of a single
+ * hue is a single vertical; the 6px rule gutters mark where one stops and the
+ * next begins.
+ *
+ * Verticals with nothing recorded are dropped here rather than drawn at zero
+ * width — `squarify` divides by the running total, and a zero-value item is a
+ * degenerate rectangle. The pie keeps them; it indexes by slot.
  */
 export function Treemap({ ratio, className }: { ratio: number; className?: string }) {
   const total = totalSpend();
-  const groups = byGroup();
-  const categories = byCategory();
+  const verticals = byVertical().filter((entry) => entry.amountPaise > 0);
+  const subtypes = bySubtype();
   const frame: Rect = { x: 0, y: 0, w: ratio, h: 1 };
 
   // squarify divides by the total, so an empty month is not a degenerate
@@ -136,8 +141,8 @@ export function Treemap({ ratio, className }: { ratio: number; className?: strin
     );
   }
 
-  const placedGroups = squarify(
-    groups.map((entry) => ({ item: entry.group, value: entry.amount })),
+  const placed = squarify(
+    verticals.map((entry) => ({ item: entry.vertical, value: entry.amountPaise })),
     frame,
   );
 
@@ -146,18 +151,16 @@ export function Treemap({ ratio, className }: { ratio: number; className?: strin
       className={`relative w-full border-2 border-rule bg-rule ${className ?? ""}`}
       style={{ aspectRatio: String(ratio) }}
     >
-      {placedGroups.map(({ item: group, rect }) => {
-        const members = categories.filter(
-          (entry) => CATEGORY_TO_GROUP[entry.category] === group,
-        );
+      {placed.map(({ item: vertical, rect }) => {
+        const members = subtypes.filter((entry) => entry.vertical === vertical);
         const inner = squarify(
-          members.map((entry) => ({ item: entry, value: entry.amount })),
+          members.map((entry) => ({ item: entry, value: entry.amountPaise })),
           { x: 0, y: 0, w: rect.w, h: rect.h },
         );
 
         return (
           <div
-            key={group}
+            key={vertical}
             className="absolute"
             style={{
               left: `calc(${pct(rect.x, frame.w)} + 3px)`,
@@ -168,10 +171,10 @@ export function Treemap({ ratio, className }: { ratio: number; className?: strin
           >
             {inner.map(({ item, rect: cell }) => (
               <Cell
-                key={item.category}
-                category={item.category}
-                amount={item.amount}
-                share={(item.amount / total) * 100}
+                key={subtypeKey(item)}
+                subtype={item}
+                amountPaise={item.amountPaise}
+                share={(item.amountPaise / total) * 100}
                 rect={cell}
                 frame={{ x: 0, y: 0, w: rect.w, h: rect.h }}
               />

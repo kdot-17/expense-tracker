@@ -29,7 +29,7 @@ It is not a style suggestion. It records decisions enforced by `npm run palette`
 that have already caused real bugs when ignored. If a change would contradict
 it, update that document first and say why.
 
-The three that bite hardest:
+The four that bite hardest:
 
 - **Never hand Chart.js a CSS variable, `oklch()` or `color-mix()`.** Chart.js v4
   cannot parse them; it fails silently or paints black. Canvas colours come from
@@ -38,7 +38,11 @@ The three that bite hardest:
   plugin closing over React state freezes at first render. Read live state off
   the `chart` argument, or key the chart on what changed.
 - **Colour is identity, never magnitude and never sentiment.** Slot order is
-  frozen. Every coloured series is also directly labelled.
+  frozen: slot N is `VERTICAL_ORDER[N]`, in both themes and every month. Every
+  coloured series is also directly labelled.
+- **The palette has no headroom left.** Ten slots pass all eight checks, but the
+  worst adjacent pair clears deuteranopia by 0.1 ΔE. Adding a vertical means
+  re-solving the whole set against `npm run palette`, not appending a hex.
 
 ## Styling
 
@@ -62,6 +66,12 @@ shows an em dash rather than `₹0`, a comparison against a month that does not
 exist is withheld rather than reported as "no change", and a legend for an
 encoding that is not on screen is not drawn. Several real bugs here have all
 been the same mistake: rendering the zero value instead of the unknown one.
+
+Prefer to make that impossible in the seam rather than remembering it in the
+component. `verticalVsPrevious()` returns `null`, not ten zeroes, so a caller
+that forgets cannot render "no change" ten times over a comparison nobody made.
+The same applies to a truncated figure: a treemap cell too small for its amount
+shows no amount, because a clipped `₹920` reads as `₹92`.
 
 Any figure appearing in prose must be derived from the data, never typed as a
 literal — a confidently wrong number in a footnote is a bug, not a nit.

@@ -2,12 +2,12 @@ import {
   byDay,
   DAYS_IN_MONTH,
   FIRST_WEEKDAY,
-  formatINR,
   weekdayMedians,
   WEEKDAYS_LONG,
   WEEKDAYS_SHORT,
-} from "@/lib/transactions";
-import { compactINR, RAMP_LABELS, rampStep } from "@/lib/palette";
+} from "@/lib/expenses";
+import { compactPaise, formatPaiseWhole } from "@/lib/money";
+import { RAMP_LABELS, rampStep } from "@/lib/palette";
 
 /** Card cell, hard ink slashes. A blank day should look struck out, not just
     pale — absence encoded as absence, in both themes. */
@@ -66,7 +66,7 @@ export function CalendarBlock() {
                   ? `Day ${day}`
                   : quiet
                     ? `Day ${day} — nothing moved`
-                    : `Day ${day} — ${formatINR(amount)}`
+                    : `Day ${day} — ${formatPaiseWhole(amount)}`
               }
               className="flex aspect-square flex-col justify-between overflow-hidden p-1 sm:p-1.5"
               style={{
@@ -90,7 +90,7 @@ export function CalendarBlock() {
                   padding: quiet ? "1px 2px" : undefined,
                 }}
               >
-                {!known ? "" : quiet ? "NIL" : compactINR(amount)}
+                {!known ? "" : quiet ? "NIL" : compactPaise(amount)}
               </span>
             </div>
           );
@@ -112,7 +112,7 @@ export function CalendarBlock() {
               className="block text-[11px] tabular-nums sm:text-[13px]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              {known ? compactINR(value) : "—"}
+              {known ? compactPaise(value) : "—"}
             </span>
           </div>
         ))}

@@ -1,6 +1,6 @@
 import { logout } from "@/app/login/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MONTH_LABEL } from "@/lib/transactions";
+import { MONTH_LABEL } from "@/lib/expenses";
 
 const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
 

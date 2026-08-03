@@ -51,3 +51,36 @@ export function formatPaise(paise: number): string {
   // is display-only and never flows back into stored arithmetic.
   return INR_FORMAT.format(paise / 100);
 }
+
+const INR_WHOLE = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+/**
+ * The same thing rounded to whole rupees: `₹1,23,457`.
+ *
+ * This is what the dashboard uses. Paise are the storage unit and matter when
+ * entering or reconciling a single expense, but a column of monthly totals
+ * reading `₹1,23,456.78` puts two digits of noise on every line for a figure
+ * nobody checks to the paise. `formatPaise` stays the right call anywhere an
+ * individual amount is being entered or verified.
+ */
+export function formatPaiseWhole(paise: number): string {
+  return INR_WHOLE.format(paise / 100);
+}
+
+/**
+ * `₹2.6k` / `₹1.4L` — axis ticks and calendar cells only, never a headline.
+ *
+ * Lakhs rather than millions, matching how the amount would be said aloud
+ * here. Below ₹1,000 it prints whole rupees, because `₹0.4k` is not a thing
+ * anyone writes.
+ */
+export function compactPaise(paise: number): string {
+  const rupees = Math.round(paise / 100);
+  if (rupees >= 100_000) return `₹${(rupees / 100_000).toFixed(1)}L`;
+  if (rupees >= 1_000) return `₹${(rupees / 1_000).toFixed(1)}k`;
+  return `₹${rupees}`;
+}

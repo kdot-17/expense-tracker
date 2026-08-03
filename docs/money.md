@@ -44,13 +44,41 @@ greater-than-zero rule is enforced by the caller and by a `CHECK` constraint.
 
 ### `formatPaise(paise: number): string`
 
-Formats for display with Indian lakh/crore grouping.
+Formats for display with Indian lakh/crore grouping, to the paise.
 
 | Input | Output |
 | --- | --- |
 | `25420` | `₹254.20` |
 | `12345678` | `₹1,23,456.78` |
 | `5` | `₹0.05` |
+
+### `formatPaiseWhole(paise: number): string`
+
+The same, rounded to whole rupees. **This is what the dashboard uses.**
+
+| Input | Output |
+| --- | --- |
+| `25420` | `₹254` |
+| `12345678` | `₹1,23,457` |
+
+Paise are the storage unit and they matter when entering or reconciling a single
+expense, which is what `formatPaise` is for. A column of monthly totals reading
+`₹1,23,456.78` puts two digits of noise on every line for a figure nobody checks
+to the paise.
+
+### `compactPaise(paise: number): string`
+
+Axis ticks and calendar cells only — never a headline, because a reader cannot
+add up numbers that have been rounded to one decimal.
+
+| Input | Output |
+| --- | --- |
+| `45000` | `₹450` |
+| `260000` | `₹2.6k` |
+| `14000000` | `₹1.4L` |
+
+Lakhs rather than millions, matching how the amount is said aloud here. Below
+₹1,000 it prints whole rupees, because `₹0.4k` is not a thing anyone writes.
 
 ## Rules when handling amounts
 

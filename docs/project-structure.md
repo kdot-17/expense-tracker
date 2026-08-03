@@ -2,16 +2,26 @@
 
 ```
 src/
-  app/                 Routes and UI (App Router)
-    layout.tsx         Root layout: html shell, fonts, metadata
-    page.tsx           /        — the signed-in home page
-    navbar.tsx         App chrome, used by pages rather than the root layout
-    logout-button.tsx  Sign-out form
+  app/                 Routes only (App Router)
+    layout.tsx         Root layout: html shell, fonts, theme bootstrap
+    page.tsx           /        — the dashboard, auth-gated
     login/
       page.tsx         /login
       login-form.tsx   The sign-in form (client component)
       actions.ts       login and logout server actions
     globals.css        Tailwind import and theme tokens
+  components/
+    theme-toggle.tsx   The light/dark control (client)
+    dashboard/         One file per section of the page
+      dashboard.tsx    Section order and the headline block
+      masthead.tsx     The top band and the footer colophon
+      charts.tsx       The three Chart.js canvases (client)
+      treemap.tsx      Verticals containing their subtypes, to scale
+      squarify.ts      Squarified treemap layout, no dependencies
+      calendar.tsx     The month as a grid, on the ramp
+      versus-previous.tsx  The diverging month-on-month strip
+      ledger.tsx       Every expense, in date order
+      empty.tsx        The shared zero state
   db/
     schema.ts          Table definitions
     index.ts           getDb() — the lazy database client
@@ -19,23 +29,41 @@ src/
     auth.ts            Credential checks and session token signing
     session.ts         Session cookie read/write
     dal.ts             Data Access Layer — the authorisation boundary
-    money.ts           Rupee parsing and formatting
+    money.ts           Paise parsing and formatting
+    taxonomy.ts        The ten verticals and their subtypes
+    expenses.ts        The data seam every dashboard component reads
+    palette.ts         Canvas mirror of the colour tokens
+    theme.ts           Theme store and pre-paint bootstrap script
+    fonts.ts           The two typefaces
+    chart-setup.ts     Chart.js registration
   proxy.ts             Runs before pages; optimistic auth gate
 drizzle/               Generated migration SQL, committed
 docs/                  This documentation
+scripts/               palette-check.mjs, the colour validator
 ```
 
 ## What lives where
 
 - **`src/app/`** is the only directory the router looks at. A path becomes a real
   URL only when a `page.tsx` or `route.ts` exists — a folder alone does nothing.
-  Files like `actions.ts`, `navbar.tsx`, and `login-form.tsx` sit inside route
-  folders as co-located code, not endpoints. (Metadata files are the exception:
+  Files like `actions.ts` and `login-form.tsx` sit inside route folders as
+  co-located code, not endpoints. (Metadata files are the exception:
   `favicon.ico` is served at `/favicon.ico` by filename convention alone.)
+- **`src/components/`** holds everything that renders but is not a route. The
+  dashboard is split one file per section rather than one long page, because the
+  sections are independently readable and independently broken.
 - **`src/db/`** and **`src/lib/`** are outside the router entirely, so nothing in
   them can be reached by URL. The tables in `schema.ts` create no routes.
 - **`drizzle/`** holds generated SQL and is committed, so the schema is
   reviewable as SQL and rebuildable from scratch.
+
+## The two halves that have not met yet
+
+`src/db/` reads real expenses out of Postgres. `src/lib/expenses.ts` is what the
+page actually renders, and it is **empty** — no query runs. The shapes match on
+purpose (integer paise, a vertical and a subtype on every row), so connecting
+them is a matter of filling that one module. Until then the page is a complete
+scaffold showing honest empty states, and no component knows the difference.
 
 ## Imports
 

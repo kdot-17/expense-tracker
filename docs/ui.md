@@ -20,8 +20,17 @@ and how theming resolves.
 | `Dashboard` | `src/components/dashboard/dashboard.tsx` | Server |
 | `Masthead` / `Colophon` | `src/components/dashboard/masthead.tsx` | Server |
 | `ThemeToggle` | `src/components/theme-toggle.tsx` | Client |
-| `GroupPie` / `SpendLine` / `MerchantBars` | `src/components/dashboard/charts.tsx` | Client |
+| `VerticalPie` / `SpendLine` / `SubtypeBars` | `src/components/dashboard/charts.tsx` | Client |
+| `Treemap` | `src/components/dashboard/treemap.tsx` | Server |
+| `CalendarBlock` | `src/components/dashboard/calendar.tsx` | Server |
+| `VersusPrevious` | `src/components/dashboard/versus-previous.tsx` | Server |
+| `Ledger` | `src/components/dashboard/ledger.tsx` | Server |
+| `EmptyPlot` | `src/components/dashboard/empty.tsx` | Server |
 | `LoginForm` | `src/app/login/login-form.tsx` | Client |
+
+Only the three that need a canvas or browser state are Client Components. The
+treemap looks interactive and is not — it is percentage-positioned divs, so it
+renders on the server and costs nothing on the client.
 
 ### RootLayout
 

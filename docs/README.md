@@ -33,12 +33,14 @@ Documentation lives here and is updated in the same change as the code it
 describes, not afterwards. Every API — server actions, route handlers, database
 schema, and shared helpers — belongs in one of the files above.
 
-Before any change is considered done, all three of these must pass:
+Before any change is considered done, all four of these must pass:
 
 ```bash
-npm run typecheck
-npm run lint
-npm run build
+npm run verify     # typecheck + lint + palette + build
 ```
+
+`npm run palette` is not optional — it validates both colour themes and
+cross-checks `globals.css` against `src/lib/palette.ts`, which is the only thing
+stopping the two files drifting apart.
 
 Pull requests target the `trunk` branch. There is no `main` branch.

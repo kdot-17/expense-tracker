@@ -1,9 +1,5 @@
-import {
-  byGroup,
-  formatINR,
-  groupVsPrevious,
-  PREVIOUS_MONTH_TOTAL,
-} from "@/lib/transactions";
+import { byVertical, verticalVsPrevious } from "@/lib/expenses";
+import { formatPaiseWhole } from "@/lib/money";
 
 import { EmptyPlot } from "./empty";
 
@@ -13,18 +9,18 @@ import { EmptyPlot } from "./empty";
  * signed number both carry the sign, so the colour is only ever identity.
  */
 export function VersusPrevious() {
-  // Without a prior month every delta is 0, and the rows would read "no change"
-  // and "identical to last month" — a comparison against a month that does not
-  // exist. The header already says "No prior month on file"; say the same here.
-  if (PREVIOUS_MONTH_TOTAL <= 0) {
+  const deltas = verticalVsPrevious();
+  // Null means there is no per-vertical history, which is not the same as ten
+  // verticals that each happened to move by zero. Drawing the second when we
+  // have the first is the bug this guard exists for.
+  if (deltas === null) {
     return <EmptyPlot label="No prior month on file" />;
   }
 
-  const deltas = groupVsPrevious();
-  const groups = byGroup();
-  // Floored at 1: a real month where every group moved by exactly zero would
+  const verticals = byVertical();
+  // Floored at 1: a real month where every vertical moved by exactly zero would
   // otherwise divide by zero and size every bar NaN.
-  const max = Math.max(1, ...deltas.map((entry) => Math.abs(entry.delta)));
+  const max = Math.max(1, ...deltas.map((entry) => Math.abs(entry.deltaPaise)));
 
   return (
     <div className="flex flex-col">
@@ -39,16 +35,18 @@ export function VersusPrevious() {
 
       <ul>
         {deltas.map((entry, i) => {
-          const width = (Math.abs(entry.delta) / max) * 50;
-          const up = entry.delta > 0;
-          const flat = entry.delta === 0;
+          const width = (Math.abs(entry.deltaPaise) / max) * 50;
+          const up = entry.deltaPaise > 0;
+          const flat = entry.deltaPaise === 0;
 
           return (
             <li
-              key={entry.group}
+              key={entry.vertical}
               className="grid grid-cols-[96px_minmax(0,1fr)_76px] items-center gap-2 border-b border-grid py-2 sm:grid-cols-[168px_minmax(0,1fr)_92px] sm:gap-3"
-              title={`${entry.group}: ${formatINR(groups[i].amount)} this month, ${
-                flat ? "identical to last month" : `${up ? "+" : "−"}${formatINR(Math.abs(entry.delta))} on last month`
+              title={`${entry.vertical}: ${formatPaiseWhole(verticals[i].amountPaise)} this month, ${
+                flat
+                  ? "identical to last month"
+                  : `${up ? "+" : "−"}${formatPaiseWhole(Math.abs(entry.deltaPaise))} on last month`
               }`}
             >
               <span className="flex min-w-0 items-center gap-2">
@@ -58,7 +56,7 @@ export function VersusPrevious() {
                   style={{ background: `var(--slot-${i})` }}
                 />
                 <span className="min-w-0 text-[11px] leading-tight font-medium break-words text-ink sm:text-[13px]">
-                  {entry.group}
+                  {entry.vertical}
                 </span>
               </span>
 
@@ -93,7 +91,7 @@ export function VersusPrevious() {
                 ) : (
                   <span style={{ fontFamily: "var(--font-display)" }}>
                     {up ? "+" : "−"}
-                    {formatINR(Math.abs(entry.delta))}
+                    {formatPaiseWhole(Math.abs(entry.deltaPaise))}
                   </span>
                 )}
               </span>
