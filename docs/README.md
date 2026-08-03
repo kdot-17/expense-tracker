@@ -2,7 +2,8 @@
 
 A single-user expense tracker. One person signs in with a fixed email and
 password, records what they spent, and sees where their money went. All amounts
-are Indian rupees.
+are Indian rupees, held everywhere in the code as integer paise and turned into
+rupees only for display — see [money.md](money.md).
 
 ## Contents
 
@@ -12,7 +13,7 @@ are Indian rupees.
 | [project-structure.md](project-structure.md) | Where everything lives and why |
 | [conventions.md](conventions.md) | How data is read, written, aggregated, and displayed |
 | [database.md](database.md) | The vertical/subtype/expense hierarchy, tables, constraints, indexes, the seeded taxonomy, and how to run migrations |
-| [money.md](money.md) | How rupee amounts are parsed, stored, and displayed |
+| [money.md](money.md) | Paise as the unit everywhere, and how rupee amounts are parsed and displayed |
 | [auth.md](auth.md) | Signing in, sessions, and where authorisation is enforced |
 | [design-system.md](design-system.md) | The design system: colour, type, layout, charts, dark mode, and the palette validator |
 | [ui.md](ui.md) | Component inventory and Server/Client conventions |
@@ -33,7 +34,7 @@ Documentation lives here and is updated in the same change as the code it
 describes, not afterwards. Every API — server actions, route handlers, database
 schema, and shared helpers — belongs in one of the files above.
 
-Before any change is considered done, all four of these must pass:
+Before any change is considered done, all four gates must pass:
 
 ```bash
 npm run verify     # typecheck + lint + palette + build

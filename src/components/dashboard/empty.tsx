@@ -4,7 +4,7 @@
  * the layout all stay, which is the point: the scaffold is the deliverable.
  */
 export function EmptyPlot({
-  label = "No transactions yet",
+  label = "No expenses yet",
   className = "h-[280px] sm:h-[340px]",
 }: {
   label?: string;

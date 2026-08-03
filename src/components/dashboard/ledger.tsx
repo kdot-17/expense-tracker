@@ -1,5 +1,5 @@
 import { EXPENSES } from "@/lib/expenses";
-import { formatPaiseWhole } from "@/lib/money";
+import { formatPaise } from "@/lib/money";
 import { slotOf } from "@/lib/taxonomy";
 
 export function Ledger() {
@@ -87,7 +87,7 @@ export function Ledger() {
                     className="px-2 py-1.5 text-right text-[15px] tabular-nums sm:px-3"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
-                    {formatPaiseWhole(expense.amountPaise)}
+                    {formatPaise(expense.amountPaise)}
                   </td>
                 </tr>
               );

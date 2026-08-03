@@ -59,10 +59,11 @@ These are the rules that break something real when violated.
 4. **Every coloured series is also directly labelled.** Colour is never the only
    channel carrying a value.
 5. **Bars and areas start at zero.** No broken axes, no dual axes, no log scale.
-6. **Money is paise, and it is formatted by `@/lib/money`** — `formatPaiseWhole()`
-   on the dashboard, `formatPaise()` where an individual amount is entered or
-   checked, `compactPaise()` for axis ticks. en-IN lakh grouping and a real ₹.
-   Never `toLocaleString()` inline, never `$`, never a float.
+6. **Money is always `formatPaise()`** from `@/lib/money` — en-IN lakh grouping
+   and a real ₹. Never `toLocaleString()` inline, never `$`. Every amount the
+   page handles is an integer number of **paise**; rupees only ever exist as the
+   string a formatter returns. `formatPaiseCompact()` is for axis ticks and
+   calendar cells, never a headline. See [money.md](money.md).
 7. **Never hand Chart.js a CSS variable.** See §5.
 
 ---
@@ -157,6 +158,10 @@ paise like everything else), not quantiles, because a reader can hold five round
 numbers. `₹0` days are not step 0 — they are struck out with a hatch, so absence
 reads as absence.
 
+The cuts are in **paise**, so ₹1k is `1_00_000`. `RAMP_LABELS` prints the same
+five bands in rupees for the key, and the two lists have to be edited together —
+a key that disagrees with the shading is worse than no key.
+
 The ramp is also what the **spend-over-time line** is drawn in (`ramp[4]`), not a
 categorical slot. That series is total spend and belongs to no vertical, so a
 slot hue would tell a reader who has just learned "sky blue is Loans" that the
@@ -164,11 +169,14 @@ line is about Loans. Both views encode magnitude, so both use the ramp family.
 
 ### The treemap's smallest cells
 
-A vertical's subtypes are squarified inside it, and with 47 subtypes a cell can
-be a few pixels tall. Below **2% of the month** a cell drops its percentage and
-its amount and carries the name only. This is not cosmetic: `overflow-hidden`
-was slicing through the digits, so `₹920` rendered as something readable as
-`₹92`. A clipped number is worse than an absent one — the figure is still in the
+Two defences against a clipped figure, because `overflow-hidden` slicing through
+digits turns `₹1,340.08` into a readable-but-wrong `₹1,340.0`.
+
+The `sm` tier and the whole narrow layout **abbreviate** with
+`formatPaiseCompact`, keeping the exact amount in each cell's `title`. Below
+**2% of the month** an `xs` tier drops the amount entirely and carries the name
+only: the taxonomy has 47 subtypes rather than 10 categories, so a cell that
+small cannot hold even an abbreviated number. The figure is still in the
 tooltip, the vertical table and the ledger.
 
 ### The eight checks
@@ -302,6 +310,7 @@ src/components/dashboard/        the page itself, one file per section
 src/components/theme-toggle.tsx  the light/dark control
 src/lib/chart-setup.ts           Chart.js registration — see §5
 src/lib/fonts.ts                 the two faces — see §4
+src/lib/money.ts                 paise → rupee formatting — see §2 rule 6
 src/lib/palette.ts               the canvas mirror of the tokens
 src/lib/taxonomy.ts              the ten verticals and their subtypes
 src/lib/money.ts                 paise: parse, format, compact
@@ -322,6 +331,10 @@ the authority; if they disagree, the migration is right. A subtype is always a
 `(vertical, name)` pair, never a bare string — `Others` exists under Food,
 Convenience *and* Transport, so a bare name silently merges three different
 things.
+
+It holds paise, matching the `expenses.amount_paise` column it will eventually
+read from, so wiring the database up is a change of source and not a change of
+unit. It does no formatting at all: that belongs to `src/lib/money.ts`.
 
 ---
 

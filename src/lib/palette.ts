@@ -116,14 +116,21 @@ export const PALETTES: Record<ThemeName, Palette> = { light: LIGHT, dark: DARK }
 export const RAMP_LABELS = ["< ₹1k", "₹1–2k", "₹2–3k", "₹3–5k", "₹5k +"] as const;
 
 /**
- * Fixed cuts, not quantiles — a reader can hold five round numbers. Takes
- * paise, like everything else that touches an amount; the labels above are the
- * rupee equivalents of these boundaries.
+ * Fixed cuts, not quantiles — a reader can hold five round numbers.
+ *
+ * These are **paise**, like every amount in the app, so each is a hundred times
+ * the rupee figure printed in `RAMP_LABELS` above. The two lists describe the
+ * same five bands and have to be edited together: a key that disagrees with the
+ * shading is worse than no key at all.
  */
+const RAMP_CUTS_PAISE = [
+  1_00_000, // ₹1k
+  2_00_000, // ₹2k
+  3_00_000, // ₹3k
+  5_00_000, // ₹5k
+] as const;
+
 export function rampStep(paise: number): number {
-  if (paise < 100_000) return 0; // < ₹1,000
-  if (paise < 200_000) return 1;
-  if (paise < 300_000) return 2;
-  if (paise < 500_000) return 3;
-  return 4;
+  const step = RAMP_CUTS_PAISE.findIndex((cut) => paise < cut);
+  return step === -1 ? RAMP_CUTS_PAISE.length : step;
 }

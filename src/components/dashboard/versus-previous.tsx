@@ -1,5 +1,5 @@
 import { byVertical, verticalVsPrevious } from "@/lib/expenses";
-import { formatPaiseWhole } from "@/lib/money";
+import { formatPaise } from "@/lib/money";
 
 import { EmptyPlot } from "./empty";
 
@@ -43,10 +43,10 @@ export function VersusPrevious() {
             <li
               key={entry.vertical}
               className="grid grid-cols-[96px_minmax(0,1fr)_76px] items-center gap-2 border-b border-grid py-2 sm:grid-cols-[168px_minmax(0,1fr)_92px] sm:gap-3"
-              title={`${entry.vertical}: ${formatPaiseWhole(verticals[i].amountPaise)} this month, ${
+              title={`${entry.vertical}: ${formatPaise(verticals[i].amountPaise)} this month, ${
                 flat
                   ? "identical to last month"
-                  : `${up ? "+" : "−"}${formatPaiseWhole(Math.abs(entry.deltaPaise))} on last month`
+                  : `${up ? "+" : "−"}${formatPaise(Math.abs(entry.deltaPaise))} on last month`
               }`}
             >
               <span className="flex min-w-0 items-center gap-2">
@@ -91,7 +91,7 @@ export function VersusPrevious() {
                 ) : (
                   <span style={{ fontFamily: "var(--font-display)" }}>
                     {up ? "+" : "−"}
-                    {formatPaiseWhole(Math.abs(entry.deltaPaise))}
+                    {formatPaise(Math.abs(entry.deltaPaise))}
                   </span>
                 )}
               </span>

@@ -1,17 +1,20 @@
-import { bySubtype, byVertical, totalSpend } from "@/lib/expenses";
-import { formatPaiseWhole } from "@/lib/money";
+import { bySubtype, byVertical, totalSpendPaise } from "@/lib/expenses";
+import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import { slotOf, subtypeKey, type SubtypeRef } from "@/lib/taxonomy";
 
 import { EmptyPlot } from "./empty";
 import { squarify, type Rect } from "./squarify";
 
 /**
- * `xs` exists because the taxonomy has 47 subtypes, not 10 categories. A cell
- * at half a per cent is a few pixels tall, and the old four tiers all drew a
- * name *and* an amount into it — which `overflow-hidden` then sliced through
- * the digits, so `₹920` rendered as something that could be read as `₹92`. A
- * clipped number is worse than an absent one, so the smallest cells carry the
- * name only and leave the figure to the tooltip, the pie table and the ledger.
+ * Two defences against a clipped figure, because `overflow-hidden` slicing
+ * through digits turns `₹1,340.08` into a readable-but-wrong `₹1,340.0`.
+ *
+ * `sm` and the narrow layout abbreviate — `formatPaiseCompact`, exact amount
+ * still in the `title`. `xs` goes further and drops the amount entirely: the
+ * taxonomy has 47 subtypes rather than 10 categories, so a cell at half a per
+ * cent is a few pixels tall and cannot hold even an abbreviated number. Those
+ * carry the name only, and the figure lives in the tooltip, the vertical table
+ * and the ledger.
  */
 type Tier = "xl" | "lg" | "md" | "sm" | "xs";
 
@@ -57,15 +60,24 @@ function Cell({
   share,
   rect,
   frame,
+  compact,
 }: {
   subtype: SubtypeRef;
   amountPaise: number;
   share: number;
   rect: Rect;
   frame: Rect;
+  compact: boolean;
 }) {
   const slot = slotOf(subtype.vertical);
   const tier = tierOf(share);
+
+  // A full `₹1,340.08` runs past the edge of a narrow cell and gets clipped
+  // mid-number, which reads as a wrong figure rather than a truncated one — so
+  // the tight cases abbreviate. The `title` below always carries the exact
+  // amount, and so does the ledger; this is the same split the calendar uses.
+  const amount =
+    compact || tier === "sm" ? formatPaiseCompact(amountPaise) : formatPaise(amountPaise);
 
   return (
     <div
@@ -84,7 +96,7 @@ function Cell({
         outline: "2px solid var(--rule)",
         outlineOffset: "-1px",
       }}
-      title={`${subtype.vertical} · ${subtype.name} — ${formatPaiseWhole(
+      title={`${subtype.vertical} · ${subtype.name} — ${formatPaise(
         amountPaise,
       )}, ${share.toFixed(1)}% of the month`}
     >
@@ -106,7 +118,7 @@ function Cell({
             className={`leading-[0.85] tracking-[-0.04em] tabular-nums ${AMOUNT_SIZE[tier]}`}
             style={{ fontFamily: "var(--font-display)" }}
           >
-            {formatPaiseWhole(amountPaise)}
+            {amount}
           </span>
         )}
       </span>
@@ -125,8 +137,18 @@ function Cell({
  * width — `squarify` divides by the running total, and a zero-value item is a
  * degenerate rectangle. The pie keeps them; it indexes by slot.
  */
-export function Treemap({ ratio, className }: { ratio: number; className?: string }) {
-  const total = totalSpend();
+export function Treemap({
+  ratio,
+  className,
+  compact = false,
+}: {
+  ratio: number;
+  className?: string;
+  /** The narrow layout: poster-scale type in a cell a couple of hundred pixels
+      wide, where even a mid-sized cell cannot hold a full figure. */
+  compact?: boolean;
+}) {
+  const total = totalSpendPaise();
   const verticals = byVertical().filter((entry) => entry.amountPaise > 0);
   const subtypes = bySubtype();
   const frame: Rect = { x: 0, y: 0, w: ratio, h: 1 };
@@ -177,6 +199,7 @@ export function Treemap({ ratio, className }: { ratio: number; className?: strin
                 share={(item.amountPaise / total) * 100}
                 rect={cell}
                 frame={{ x: 0, y: 0, w: rect.w, h: rect.h }}
+                compact={compact}
               />
             ))}
           </div>

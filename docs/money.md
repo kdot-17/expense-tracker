@@ -3,6 +3,38 @@
 Every amount in this app is Indian rupees, stored as an **integer number of
 paise**. Helpers live in `src/lib/money.ts`.
 
+## One unit, everywhere
+
+Paise is not just the storage format — it is the unit of every amount the code
+ever holds:
+
+| Layer | Unit |
+| --- | --- |
+| `expenses.amount_paise` in Postgres | integer paise |
+| `src/lib/expenses.ts` — the data layer and its selectors | integer paise |
+| Props passed into components, values handed to Chart.js | integer paise |
+| What the reader sees on screen | rupees |
+
+Rupees exist in exactly two places: the string someone types into a form, and
+the string a formatter returns on the way to the screen. In between there is no
+such thing as a rupee value. A number that means "1,200 rupees" never exists —
+it is `120000` from the moment it is parsed until the moment it is printed.
+
+### Amounts say so in their name
+
+Any identifier holding money carries a `Paise` suffix — `amountPaise`,
+`totalSpendPaise()`, `PREVIOUS_MONTH_TOTAL_PAISE`, `byDayPaise()`. So do the
+formatters, which is the point of `formatPaise(paise)` rather than
+`formatINR(amount)`: the second one reads as correct when handed rupees, and
+that is how an amount ends up a hundred times too small with nothing failing.
+
+The exceptions are values where the unit has cancelled or never applied —
+`deltaPct` is a percentage, `busiestDay` is a day number. They take no suffix,
+precisely so the suffix keeps meaning something.
+
+The one place this rule is enforced by something other than habit is the
+database, where the column is `amount_paise` and a `CHECK` keeps it positive.
+
 ## Why paise and not a decimal
 
 Floating point is never used for money — `0.1 + 0.2` style error would land
@@ -44,41 +76,43 @@ greater-than-zero rule is enforced by the caller and by a `CHECK` constraint.
 
 ### `formatPaise(paise: number): string`
 
-Formats for display with Indian lakh/crore grouping, to the paise.
+The display format. Indian lakh/crore grouping, and the paise are shown.
 
 | Input | Output |
 | --- | --- |
 | `25420` | `₹254.20` |
 | `12345678` | `₹1,23,456.78` |
 | `5` | `₹0.05` |
+| `120000` | `₹1,200.00` |
 
-### `formatPaiseWhole(paise: number): string`
+Amounts are **not** rounded to the rupee for display. A round figure prints a
+`.00` it did not strictly need, which is the cheaper of the two costs: the
+alternative is a screen quietly disagreeing with what was entered, and a column
+of rounded figures that does not add up to its own rounded total.
 
-The same, rounded to whole rupees. **This is what the dashboard uses.**
+### `formatPaiseCompact(paise: number): string`
 
-| Input | Output |
-| --- | --- |
-| `25420` | `₹254` |
-| `12345678` | `₹1,23,457` |
-
-Paise are the storage unit and they matter when entering or reconciling a single
-expense, which is what `formatPaise` is for. A column of monthly totals reading
-`₹1,23,456.78` puts two digits of noise on every line for a figure nobody checks
-to the paise.
-
-### `compactPaise(paise: number): string`
-
-Axis ticks and calendar cells only — never a headline, because a reader cannot
-add up numbers that have been rounded to one decimal.
+For places with no room for a full figure: axis ticks, calendar cells, and
+treemap cells too narrow to hold one. Never a headline, and never a figure being
+reported as exact.
 
 | Input | Output |
 | --- | --- |
-| `45000` | `₹450` |
+| `99900` | `₹999` |
 | `260000` | `₹2.6k` |
-| `14000000` | `₹1.4L` |
+| `2940000` | `₹29.4k` |
+| `12000000` | `₹1.2L` |
 
-Lakhs rather than millions, matching how the amount is said aloud here. Below
-₹1,000 it prints whole rupees, because `₹0.4k` is not a thing anyone writes.
+This one is an approximation by design: `₹2.6k` is already rounded, so below
+₹1,000 it prints whole rupees rather than claiming a precision the rest of the
+format does not have. Where the exact number matters, use `formatPaise`.
+
+**Abbreviate rather than let a number clip.** A `₹1,340.08` cut off at a cell
+edge reads as `₹1,340.0` — a wrong figure, not a truncated one. So the treemap
+uses this format in its smallest tier, and throughout on the narrow phone
+layout, where poster-scale type fills a cell only a couple of hundred pixels
+wide. Every one of those cells still carries the exact amount in its `title`,
+and the ledger carries all of them in full.
 
 ## Rules when handling amounts
 
@@ -94,5 +128,14 @@ Lakhs rather than millions, matching how the amount is said aloud here. Below
   one-decimal entries.
 - **Use a text input, not `type="number"`.** Pair `inputMode="decimal"` with a
   text input so the browser hands over the raw string rather than a float.
-- **Divide by 100 only for display.** Never feed a divided value back into
-  arithmetic that gets stored.
+- **Divide by 100 only for display.** The division lives inside `money.ts` and
+  nowhere else. Never feed a divided value back into arithmetic that gets
+  stored, and never divide early to "work in rupees for a bit".
+- **Thresholds are paise too.** A cut-off written as `1000` means ₹10, not
+  ₹1,000. `rampStep` in `src/lib/palette.ts` is the live example — four cuts at
+  `1_00_000`, `2_00_000`, `3_00_000` and `5_00_000` paise divide the ramp into
+  five bands, and `RAMP_LABELS` beside it names those same bands in rupees for
+  the reader. Change one list and you must change the other.
+- **Aggregate in paise, format once.** Sum in integers all the way up and call a
+  formatter at the point of render. Rounding each row and then adding the
+  rounded values is how a total stops matching its own column.

@@ -11,7 +11,7 @@ import {
   verticalVsPrevious,
 } from "@/lib/expenses";
 import { body, display } from "@/lib/fonts";
-import { formatPaiseWhole } from "@/lib/money";
+import { formatPaise } from "@/lib/money";
 import { VERTICAL_ORDER } from "@/lib/taxonomy";
 
 const MICRO = "text-[10px] font-semibold uppercase tracking-[0.2em]";
@@ -89,7 +89,7 @@ export function Dashboard() {
                 expenses exist, not about how much money moved. */}
             {hasData ? (
               <p className="font-display mt-2 text-[clamp(3rem,11vw,5.6rem)] leading-[0.82] tracking-[-0.02em] tabular-nums">
-                {formatPaiseWhole(s.total)}
+                {formatPaise(s.totalPaise)}
               </p>
             ) : (
               // The em dash is not set at headline size. Anton renders it as a
@@ -115,7 +115,7 @@ export function Dashboard() {
               </dd>
               <dd className="text-[12px]">
                 {hasPrevious
-                  ? formatPaiseWhole(Math.abs(s.deltaPaise))
+                  ? formatPaise(Math.abs(s.deltaPaise))
                   : "No prior month on file"}
               </dd>
             </div>
@@ -152,7 +152,7 @@ export function Dashboard() {
           note={`Area is amount. Subtypes nest inside the ${verticalCount} verticals they belong to: one colour is one vertical, and the wide gutters mark where a vertical ends. Packed by size, never sorted by colour.`}
         />
         <Treemap ratio={1.85} className="hidden md:block" />
-        <Treemap ratio={0.78} className="md:hidden" />
+        <Treemap ratio={0.78} className="md:hidden" compact />
       </section>
 
       {/* ------------------------------------------------ pie + vs. prior -- */}

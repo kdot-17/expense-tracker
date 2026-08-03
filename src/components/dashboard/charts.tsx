@@ -5,14 +5,14 @@ import { Bar, Line, Pie } from "react-chartjs-2";
 
 import "@/lib/chart-setup";
 import {
-  byDay,
+  byDayPaise,
   byVertical,
   byWeek,
   DAYS_IN_MONTH,
   topSubtypes,
-  totalSpend,
+  totalSpendPaise,
 } from "@/lib/expenses";
-import { compactPaise, formatPaiseWhole } from "@/lib/money";
+import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import { PALETTES, type Palette } from "@/lib/palette";
 import { slotOf, subtypeLabel } from "@/lib/taxonomy";
 import { useTheme } from "@/lib/theme";
@@ -58,7 +58,7 @@ const share = (part: number, whole: number) =>
 export function VerticalPie({ bodyFont, displayFont }: Fonts) {
   const { theme, P } = useChartTheme();
   const verticals = byVertical();
-  const total = totalSpend();
+  const total = totalSpendPaise();
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
@@ -72,10 +72,10 @@ export function VerticalPie({ bodyFont, displayFont }: Fonts) {
             key={theme}
             // react-chartjs-2 puts role="img" on the canvas itself but gives it
             // no name, so without this every chart is an unlabelled graphic.
-            aria-label={`Spending by vertical. Total ${formatPaiseWhole(total)}. ${verticals
+            aria-label={`Spending by vertical. Total ${formatPaise(total)}. ${verticals
               .map(
                 (e) =>
-                  `${e.vertical}: ${formatPaiseWhole(e.amountPaise)}, ${share(
+                  `${e.vertical}: ${formatPaise(e.amountPaise)}, ${share(
                     e.amountPaise,
                     total,
                   )} per cent`,
@@ -107,7 +107,7 @@ export function VerticalPie({ bodyFont, displayFont }: Fonts) {
                   ...tooltipStyle(P, bodyFont),
                   callbacks: {
                     label: (ctx) =>
-                      `${formatPaiseWhole(ctx.parsed ?? 0)} · ${share(ctx.parsed ?? 0, total)}%`,
+                      `${formatPaise(ctx.parsed ?? 0)} · ${share(ctx.parsed ?? 0, total)}%`,
                   },
                 },
               },
@@ -141,7 +141,7 @@ export function VerticalPie({ bodyFont, displayFont }: Fonts) {
               className="text-ink shrink-0 text-[15px] tabular-nums"
               style={{ fontFamily: displayFont }}
             >
-              {total === 0 ? "—" : formatPaiseWhole(entry.amountPaise)}
+              {total === 0 ? "—" : formatPaise(entry.amountPaise)}
             </span>
             <span className="text-ink-2 w-12 shrink-0 text-right text-[12px] tabular-nums">
               {total === 0 ? "" : `${share(entry.amountPaise, total)}%`}
@@ -160,10 +160,10 @@ type Grain = "daily" | "weekly";
 export function SpendLine({ bodyFont }: Fonts) {
   const { theme, P } = useChartTheme();
   const [grain, setGrain] = useState<Grain>("daily");
-  const daily = byDay();
+  const daily = byDayPaise();
   const weekly = byWeek();
   const isDaily = grain === "daily";
-  const hasData = totalSpend() > 0;
+  const hasData = totalSpendPaise() > 0;
 
   const labels = isDaily
     ? daily.map((_, i) => String(i + 1))
@@ -203,7 +203,7 @@ export function SpendLine({ bodyFont }: Fonts) {
           <Line
             key={theme}
             aria-label={`Spend per ${isDaily ? "day" : "week"}. ${labels
-              .map((l, i) => `${isDaily ? `Day ${l}` : l}: ${formatPaiseWhole(values[i] ?? 0)}`)
+              .map((l, i) => `${isDaily ? `Day ${l}` : l}: ${formatPaise(values[i] ?? 0)}`)
               .join(". ")}`}
             data={{
               labels,
@@ -246,7 +246,7 @@ export function SpendLine({ bodyFont }: Fonts) {
                     label: (ctx) =>
                       (ctx.parsed.y ?? 0) === 0
                         ? "No spending"
-                        : formatPaiseWhole(ctx.parsed.y ?? 0),
+                        : formatPaise(ctx.parsed.y ?? 0),
                   },
                 },
               },
@@ -269,7 +269,7 @@ export function SpendLine({ bodyFont }: Fonts) {
                     color: P.muted,
                     font: { family: bodyFont, size: 11 },
                     maxTicksLimit: 5,
-                    callback: (value) => compactPaise(Number(value)),
+                    callback: (value) => formatPaiseCompact(Number(value)),
                   },
                 },
               },
@@ -305,7 +305,7 @@ export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
           aria-label={`Top ${subtypes.length} subtypes by spend. ${subtypes
             .map(
               (e) =>
-                `${e.name}, ${e.vertical}: ${formatPaiseWhole(e.amountPaise)}`,
+                `${e.name}, ${e.vertical}: ${formatPaise(e.amountPaise)}`,
             )
             .join(". ")}`}
           data={{
@@ -328,14 +328,16 @@ export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
-            layout: { padding: { right: 64 } },
+            // Room for the value drawn past the end of each bar. Sized for a
+            // full paise figure — `₹1,23,456.78`, not `₹1,23,457`.
+            layout: { padding: { right: 92 } },
             plugins: {
               legend: { display: false }, // named swatches sit under the chart
               tooltip: {
                 ...tooltipStyle(P, bodyFont),
                 callbacks: {
                   label: (ctx) =>
-                    `${formatPaiseWhole(ctx.parsed.x ?? 0)} · ${
+                    `${formatPaise(ctx.parsed.x ?? 0)} · ${
                       subtypes[ctx.dataIndex]?.vertical ?? ""
                     }`,
                 },
@@ -350,7 +352,7 @@ export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
                   color: P.muted,
                   font: { family: bodyFont, size: 11 },
                   maxTicksLimit: 5,
-                  callback: (value) => compactPaise(Number(value)),
+                  callback: (value) => formatPaiseCompact(Number(value)),
                 },
               },
               y: {
@@ -376,7 +378,7 @@ export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
                 ctx.textBaseline = "middle";
                 ctx.font = `400 13px ${displayFont}`;
                 meta.data.forEach((bar, i) => {
-                  ctx.fillText(formatPaiseWhole(Number(raw[i] ?? 0)), bar.x + 10, bar.y + 1);
+                  ctx.fillText(formatPaise(Number(raw[i] ?? 0)), bar.x + 10, bar.y + 1);
                 });
                 ctx.restore();
               },

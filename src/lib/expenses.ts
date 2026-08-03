@@ -95,7 +95,7 @@ export const WEEKDAYS_SHORT = [
 
 /* --------------------------------------------------------------- selectors */
 
-export function totalSpend(): number {
+export function totalSpendPaise(): number {
   return EXPENSES.reduce((sum, e) => sum + e.amountPaise, 0);
 }
 
@@ -163,7 +163,7 @@ export function verticalVsPrevious():
   }));
 }
 
-export function byDay(): number[] {
+export function byDayPaise(): number[] {
   const days = Array.from({ length: DAYS_IN_MONTH }, () => 0);
   for (const e of EXPENSES) {
     if (e.day >= 1 && e.day <= DAYS_IN_MONTH) days[e.day - 1] += e.amountPaise;
@@ -172,9 +172,9 @@ export function byDay(): number[] {
 }
 
 /** Calendar weeks, Monday start, so a partial first week stays partial. */
-export function byWeek(): { label: string; amountPaise: number; days: number[] }[] {
-  const daily = byDay();
-  const weeks: { label: string; amountPaise: number; days: number[] }[] = [];
+export function byWeek(): { label: string; amountPaise: number; daysPaise: number[] }[] {
+  const daily = byDayPaise();
+  const weeks: { label: string; amountPaise: number; daysPaise: number[] }[] = [];
   let cursor = 0;
   let index = 0;
 
@@ -184,7 +184,7 @@ export function byWeek(): { label: string; amountPaise: number; days: number[] }
     weeks.push({
       label: `${cursor + 1}–${Math.min(cursor + span, DAYS_IN_MONTH)}`,
       amountPaise: days.reduce((sum, value) => sum + value, 0),
-      days,
+      daysPaise: days,
     });
     cursor += span;
     index += 1;
@@ -216,8 +216,8 @@ function median(values: number[]): number {
 }
 
 /** Median spend per weekday (Mon..Sun), counting only days money moved. */
-export function weekdayMedians(): number[] {
-  const daily = byDay();
+export function weekdayMediansPaise(): number[] {
+  const daily = byDayPaise();
   const buckets: number[][] = Array.from({ length: 7 }, () => []);
 
   for (let day = 1; day <= DAYS_IN_MONTH; day += 1) {
@@ -229,16 +229,17 @@ export function weekdayMedians(): number[] {
 }
 
 export function stats() {
-  const daily = byDay();
-  const total = totalSpend();
+  const daily = byDayPaise();
+  const totalPaise = totalSpendPaise();
 
   return {
-    total,
-    deltaPaise: total - PREVIOUS_MONTH_TOTAL_PAISE,
+    totalPaise,
+    deltaPaise: totalPaise - PREVIOUS_MONTH_TOTAL_PAISE,
+    // No suffix: a percentage has no unit, which is the point of the rule.
     deltaPct:
       PREVIOUS_MONTH_TOTAL_PAISE === 0
         ? 0
-        : ((total - PREVIOUS_MONTH_TOTAL_PAISE) / PREVIOUS_MONTH_TOTAL_PAISE) * 100,
+        : ((totalPaise - PREVIOUS_MONTH_TOTAL_PAISE) / PREVIOUS_MONTH_TOTAL_PAISE) * 100,
     count: EXPENSES.length,
     activeDays: daily.filter((amount) => amount > 0).length,
   };

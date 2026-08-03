@@ -64,7 +64,13 @@ reintroduces exactly the timezone conversion the `date` type avoids.
 ## Money
 
 Never let a float touch an amount. Parse rupee input from the form string, store
-whole paise, and divide by 100 only for display. See [money.md](money.md).
+whole paise, and divide by 100 only for display.
+
+Paise is the unit of every amount in the code, not just of the column — the data
+layer, the selectors, the props, and the numbers handed to Chart.js are all
+integer paise. Rupees appear only as the string a formatter returns. Identifiers
+holding money say so: `amountPaise`, `totalSpendPaise()`. See
+[money.md](money.md).
 
 ## Charts
 

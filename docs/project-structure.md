@@ -29,17 +29,17 @@ src/
     auth.ts            Credential checks and session token signing
     session.ts         Session cookie read/write
     dal.ts             Data Access Layer — the authorisation boundary
-    money.ts           Paise parsing and formatting
+    money.ts           Paise → rupee formatting, and rupee input parsing
     taxonomy.ts        The ten verticals and their subtypes
-    expenses.ts        The data seam every dashboard component reads
-    palette.ts         Canvas mirror of the colour tokens
+    expenses.ts        The data seam every component reads — amounts in paise
+    palette.ts         Chart colours as literal hex, mirroring globals.css
     theme.ts           Theme store and pre-paint bootstrap script
     fonts.ts           The two typefaces
     chart-setup.ts     Chart.js registration
   proxy.ts             Runs before pages; optimistic auth gate
 drizzle/               Generated migration SQL, committed
+scripts/               palette-check.mjs — the palette validator
 docs/                  This documentation
-scripts/               palette-check.mjs, the colour validator
 ```
 
 ## What lives where
