@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Expense tracker">
+  <title>Expense tracker</title>
+  <!--
+    The masthead band, reduced to 32px: a flat block of the `bar` token with the
+    rupee knocked out in `on_bar`. No radius, no shadow, no gradient, the same
+    three rules the rest of the page keeps.
+
+    (Written without a CSS custom property spelling anywhere in this file: a
+    double hyphen is illegal inside an XML comment, and an SVG that fails to
+    parse fails silently as a favicon. The values below are the tokens.)
+
+    The block is `bar` and not a slot colour on purpose. Slot hues carry
+    identity, slot 0 is Food, so painting the app mark in one would say this app
+    is about Food. `bar` is chrome, and it is the one surface that stays dark in
+    both themes, which is also why this icon reads on a light and a dark tab
+    strip alike.
+
+    The glyph is U+20B9 from Anton (SIL Open Font License 1.1), the display face
+    this app already ships, outlined from the shipped woff2 rather than
+    referenced, because an SVG favicon cannot load a webfont. Anton was picked
+    for the page precisely because it carries this glyph. The icon is the same
+    argument at 16px.
+  -->
+  <style>
+    .block { fill: #111111 }
+    .mark  { fill: #f5f3ed }
+    @media (prefers-color-scheme: dark) {
+      .block { fill: #171717 }
+      .mark  { fill: #ffffff }
+    }
+  </style>
+  <rect class="block" width="32" height="32" />
+  <path
+    class="mark"
+    d="M16.86 29 9.55 18.11V14.51H13.8Q15.3 14.51 15.91 13.89Q16.52 13.28 16.66 12.03H9.55V9.08H16.66Q16.52 7.8 15.91 7.2Q15.3 6.61 13.8 6.61H9.55V3H22.45V6.61H20.37Q20.73 7.66 20.86 9.08H22.45V12.03H20.88Q20.63 14.87 19.11 16.49Q17.58 18.11 14.43 18.11H14.34L21.61 29Z"
+  />
+</svg>

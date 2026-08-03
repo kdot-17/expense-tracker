@@ -396,6 +396,9 @@ the space reserved and the space drawn into cannot drift apart.
 src/app/globals.css              design tokens, both themes   ← start here
 src/app/layout.tsx               font vars + theme bootstrap, shell
 src/app/page.tsx                 the dashboard route (auth-gated)
+src/app/icon.svg                 the app mark — see "The app icon" below
+src/app/favicon.ico              the same mark, 16/32/48, for Safari and legacy
+src/app/apple-icon.png           the same mark, 180px, for iOS home screens
 src/components/dashboard/        the page itself, one file per section
 src/components/theme-toggle.tsx  the light/dark control
 src/lib/chart-setup.ts           Chart.js registration — see §5
@@ -425,6 +428,39 @@ things.
 It holds paise, matching the `expenses.amount_paise` column it will eventually
 read from, so wiring the database up is a change of source and not a change of
 unit. It does no formatting at all: that belongs to `src/lib/money.ts`.
+
+### The app icon
+
+The masthead band at 32px: a flat block of `--bar` with **U+20B9 knocked out in
+`--on-bar`**. No radius, no shadow, no gradient — §2 rule 1 applies to a 16px
+tile as much as to a page.
+
+The glyph is Anton's, outlined from the shipped woff2 and inlined as a `<path>`,
+because an SVG favicon cannot load a webfont. That is the same argument §4 makes
+for the page: Anton was chosen over Archivo Black **because it carries the rupee
+sign**, so the mark and the headline figures are the same ₹.
+
+`--bar` and not a slot hue, on purpose. Slot colour is identity (§2 rule 3) —
+slot 0 is Food — so an app mark painted in one would say this app is about Food.
+`--bar` is chrome, and it is the surface that deliberately stays dark in *both*
+themes, which is also what makes the tile read on a light and a dark tab strip
+alike.
+
+Three files, one mark. `icon.svg` carries both token pairs behind a
+`prefers-color-scheme` query and is what modern browsers use; `favicon.ico` and
+`apple-icon.png` are rasterised from the **light** pair, because a static image
+cannot follow a theme. They are regenerated together — if the `--bar` or
+`--on-bar` values ever move, all three move.
+
+> Two traps, both of which cost a debugging round here:
+>
+> - **A double hyphen is illegal inside an XML comment.** Writing a token name
+>   in a comment in `icon.svg` makes the file fail to parse, and a favicon that
+>   fails to parse fails *silently*. The comments in that file spell the tokens
+>   without the leading dashes for exactly this reason.
+> - **Next's ICO decoder rejects RGB.** A `.ico` whose embedded PNGs are not
+>   **RGBA** does not degrade to a missing icon — it throws at build and every
+>   route 500s.
 
 ---
 

@@ -49,7 +49,10 @@ docs/                  This documentation
   URL only when a `page.tsx` or `route.ts` exists — a folder alone does nothing.
   Files like `actions.ts` and `login-form.tsx` sit inside route folders as
   co-located code, not endpoints. (Metadata files are the exception:
-  `favicon.ico` is served at `/favicon.ico` by filename convention alone.)
+  `favicon.ico`, `icon.svg` and `apple-icon.png` are each served at their own
+  path by filename convention alone, with no `page.tsx` or `route.ts` involved.
+  Because they *are* routes, the proxy matcher has to exempt each one — see
+  [auth.md](auth.md).)
 - **`src/components/`** holds everything that renders but is not a route. The
   dashboard is split one file per section rather than one long page, because the
   sections are independently readable and independently broken.

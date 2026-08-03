@@ -36,8 +36,15 @@ visitors to `/login` and signed-in visitors away from it. It runs on the Node.js
 runtime, so `node:crypto` is available for verifying the token.
 
 **It is an optimistic check only.** It reads the cookie and never touches a data
-source. Its matcher excludes `_next/static`, `_next/image`, and `favicon.ico`
-so static assets still load.
+source. Its matcher excludes `_next/static`, `_next/image`, `favicon.ico`,
+`icon.svg` and `apple-icon.png` so static assets still load.
+
+The three icon paths are listed separately because the metadata file convention
+emits **one route per icon file**, and only `favicon.ico` was originally
+excluded. Anything not on this list is redirected to `/login` when signed out —
+which is precisely when the login page is trying to load its own tab icon. If
+you add another metadata file (`icon1.png`, `opengraph-image.tsx`, a web app
+manifest), add it here in the same change.
 
 The real boundary is `verifySession()` in `src/lib/dal.ts`. Anything that reads
 or writes real data calls it first; it redirects to `/login` when there is no
