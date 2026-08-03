@@ -339,8 +339,9 @@ Resolution order: `data-theme` on `<html>` → `prefers-color-scheme` → light.
     swapped in below `md`. Adding a scroll box to either would defeat this.
 
     That swap stays at `md` and not later: the portrait ratio is 0.78, so at a
-    1023px viewport it would stand 1250px tall. Slivers too narrow to label are
-    handled by the `xs` tier dropping their text, not by changing the ratio.
+    1023px viewport it would stand 1250px tall. Slivers too narrow to label
+    keep their name and drop the amount and the share badge, each sized from
+    its own cell (`xsLabelSize`) — the ratio is not what fixes them.
 - Grid children need `min-w-0`. A grid item defaults to `min-width: auto`, so a
   chart canvas or a wide table sets its track's floor at content width and
   pushes the whole page sideways.
@@ -359,23 +360,33 @@ A size is written in the unit that describes what it actually depends on:
 That last row is the only place `px` belongs. A 2px rule is 2px because it is a
 rule; making it `rem` would give it a fractional width and a soft edge.
 
-**Plot frames carry an aspect ratio and a `min-h` floor, never a fixed height.**
-Chart.js needs a parent with a definite height (§5.4), and a ratio gives it one
-derived from the width, so a plot reflows continuously with its column instead
-of stepping at a breakpoint. `LINE_FRAME` and `BAR_FRAME` in `charts.tsx` are
-the two shapes.
+**Plot frames carry an aspect ratio between a `min-h` floor and a `max-h`
+ceiling, never a fixed height.** Chart.js needs a parent with a definite height
+(§5.4), and a ratio gives it one derived from the width, so a plot reflows
+continuously with its column instead of stepping at a breakpoint. `LINE_FRAME`
+and `BAR_FRAME` are the two shapes, and they live in their own module,
+`src/components/dashboard/frames.ts` — **not** in `charts.tsx`, because
+`charts.tsx` imports `EmptyPlot` from `empty.tsx`, so `empty.tsx` cannot import
+back. The same string written out in both files is how a `max-h` came to exist
+in one copy and not the other, and an empty plot stood 548px tall beside a
+420px chart.
 
-The floor exists because **these columns get narrower at `lg`, not wider**: the
-12-column grid takes over, so the line plot's column falls from 720px at a
-768px viewport to 537px at 1024px. A pure ratio would squash a time series to
-244px exactly where the page has most room. The floors are the heights these
-plots had before this became fluid, in rem; the ratio takes over above them.
+Both bounds are load-bearing, and both are rem so they track the type they have
+to stay legible against. The **floor** exists because these columns get narrower
+at `lg`, not wider: the 12-column grid takes over, so the line plot's column
+falls from 720px at a 768px viewport to 537px at 1024px, and a pure ratio would
+squash a time series to 244px exactly where the page has most room. The
+**ceiling** stops the opposite — at the wide end of the `sm` band a bare ratio
+reaches 650px. The ratio governs between them.
 
-**A canvas has no CSS**, so `charts.tsx` does the same arithmetic by hand:
-tick and tooltip sizes come from `remPx()`, and the bar annotation reserves a
-*share* of the plot (`VALUE_GUTTER`) then measures its own labels to pick the
-largest size that fits. A fixed reserve is wrong at one of the two widths this
-chart is rendered at, and was.
+**A canvas has no CSS**, so `charts.tsx` does the same arithmetic by hand: tick
+and tooltip sizes come from `remPx()`, and the bar annotation measures its own
+widest figure and reserves exactly that, capped at `VALUE_GUTTER_MAX` of the
+plot. Neither constant works alone. A fixed pixel reserve is too small once a
+figure carries paise; a fixed *share* is right at one width only, and strands a
+quarter of a full-bleed plot behind a figure that stopped growing at its rem
+ceiling. `layout.padding` and the `barValues` plugin call the same function, so
+the space reserved and the space drawn into cannot drift apart.
 
 ---
 

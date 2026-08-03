@@ -53,13 +53,11 @@ const MICRO = "text-micro font-semibold uppercase tracking-[0.18em] text-muted";
 
 /**
  * A canvas has no CSS, so the responsive rules have to be arithmetic here.
- * These are all *ratios* — of the plot's own width, or of the gutter — so the
- * chart looks the same at any size instead of at one size.
  */
-/** Share of the bar plot reserved for the value printed past each bar. */
-const VALUE_GUTTER = 0.24;
-/** Gap between the bar's end and its value, as a share of that gutter. */
-const VALUE_OFFSET = 0.1;
+/** Gap between a bar's end and its value, in rem so it follows the reader. */
+const VALUE_OFFSET_REM = 0.625;
+/** The most of the plot the value column may take, however long the figures. */
+const VALUE_GUTTER_MAX = 0.24;
 /** Legibility floor and ceiling, in rem — never px, so they follow the reader. */
 const VALUE_FONT_MIN_REM = 0.6875;
 const VALUE_FONT_MAX_REM = 0.9375;
@@ -82,26 +80,71 @@ const TICK_REM = 0.6875;
 const AXIS_NAME_REM = 0.75;
 const TOOLTIP_BODY_REM = 0.8125;
 
+/** The bits of a Chart.js chart the value column needs, and nothing else. */
+type Plot = {
+  width: number;
+  ctx: CanvasRenderingContext2D;
+  data: { datasets: { data: unknown[] }[] };
+};
+
 /**
- * The largest size, within the legibility bounds, at which every label fits the
- * space available. Measuring beats assuming: the reserve used to be a constant
- * that was correct for a rupee-rounded string and too small once paise arrived.
+ * The value column past the end of the bars: how wide it has to be, what size
+ * its type can be, and the labels themselves — one function, because the space
+ * *reserved* and the space *drawn into* have to be the same number, and two
+ * functions agreeing by convention is how they stop agreeing.
+ *
+ * Measured from the widest figure rather than taken as a share of the plot. A
+ * share is right at exactly one width: reserving 24% hands a full-bleed plot
+ * 229px for a 75px figure, which loses an eighth of the canvas and shortens
+ * every bar with it. So ask the text what it needs, and cap that, so a long
+ * figure cannot eat a narrow plot instead. Only when the cap bites does the
+ * type shrink — which is the case that used to clip.
+ *
+ * Labels come off the `chart` argument, never a closure: an inline plugin is
+ * captured once at construction (design-system §5.2) and a closed-over array
+ * would still be the first render's numbers.
  */
-function fitFontPx(
-  ctx: CanvasRenderingContext2D,
-  labels: string[],
-  available: number,
-  family: string,
-): number {
+function valueColumn(plot: Plot, family: string) {
+  const raw = plot.data.datasets[0]?.data ?? [];
   const root = rootFontPx();
   const max = VALUE_FONT_MAX_REM * root;
   const min = VALUE_FONT_MIN_REM * root;
+  const offset = remPx(VALUE_OFFSET_REM);
+  const cap = plot.width * VALUE_GUTTER_MAX;
 
-  ctx.font = `400 ${max}px ${family}`;
-  const widest = labels.reduce((w, label) => Math.max(w, ctx.measureText(label).width), 0);
-  if (widest <= available || widest === 0) return max;
+  const widestAt = (labels: string[], px: number) => {
+    const before = plot.ctx.font;
+    plot.ctx.font = `400 ${px}px ${family}`;
+    const w = labels.reduce((m, label) => Math.max(m, plot.ctx.measureText(label).width), 0);
+    plot.ctx.font = before;
+    return w;
+  };
 
-  return Math.max(min, Math.floor(max * (available / widest)));
+  // Exact first, abbreviated only if exact cannot be made to fit. Shrinking is
+  // bounded below — an unreadable figure is no better than a clipped one — so
+  // on a phone the widest amount the schema can hold still runs past the cap at
+  // the floor. That is the case the compact form exists for, the same split the
+  // treemap and the calendar make: `₹214.7L` is honest, `₹2,14,74,8` is a
+  // different number. The exact amount is always in the tooltip.
+  for (const format of [formatPaise, formatPaiseCompact]) {
+    const labels = raw.map((value) => format(Number(value ?? 0)));
+    const widest = widestAt(labels, max);
+    if (offset + widest <= cap || widest === 0) {
+      return { labels, offset, gutter: Math.ceil(offset + widest), fontPx: max };
+    }
+    const fontPx = Math.max(min, Math.floor(max * ((cap - offset) / widest)));
+    if (widestAt(labels, fontPx) <= cap - offset) {
+      return { labels, offset, gutter: Math.ceil(cap), fontPx };
+    }
+  }
+
+  // Compact at the floor: shorter than anything `amount_paise` can reach.
+  return {
+    labels: raw.map((value) => formatPaiseCompact(Number(value ?? 0))),
+    offset,
+    gutter: Math.ceil(cap),
+    fontPx: min,
+  };
 }
 
 const share = (part: number, whole: number) =>
@@ -123,11 +166,15 @@ export function VerticalPie({ bodyFont, displayFont }: Fonts) {
       {/* A pie is circular, so its frame is square at every width. It takes a
           share of the row rather than a fixed width, capped once it is as big
           as it needs to be. */}
-      {/* The floor matters as much as the share: a bare 38% of the 7/12 column
-          is 204px at 1024px, which would make the pie *smaller* on a desktop
-          than on a phone. Below the floor the legend wraps underneath instead,
-          which is what `flex-wrap` is there for. */}
-      <div className="relative aspect-square w-full max-w-[20rem] min-h-0 min-w-0 shrink-0 lg:w-[38%] lg:min-w-[17.5rem]">
+      {/* All three bounds have to be live, and the share is what sets that. At
+          45% the pie grows from its 17.5rem floor to its 20rem cap across the
+          `lg` range: 45% of the 7/12 column is 242px at 1024px (floored to
+          280px, and the legend wraps underneath — which is what `flex-wrap` is
+          there for) and 330px at the 85rem page cap, where the 20rem cap takes
+          over at 320px. A smaller share never reaches the cap at any viewport,
+          which pins the pie to its floor and leaves it *smaller* on a desktop
+          than on a phone, where it is already 320px. */}
+      <div className="relative aspect-square w-full max-w-[20rem] min-h-0 min-w-0 shrink-0 lg:w-[45%] lg:min-w-[17.5rem]">
         {total === 0 ? (
           // A pie of ten zeroes draws nothing at all, which reads as a broken
           // chart rather than an empty one.
@@ -397,14 +444,16 @@ export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
-            // Room for the value drawn past the end of each bar, as a share of
-            // the plot rather than a pixel count — this chart is a 5/12 column
-            // at lg and full width below it, so any fixed reserve is wrong at
-            // one of the two. The `barValues` plugin fits its type to whatever
-            // this leaves it, so the two cannot disagree.
+            // Room for the value drawn past the end of each bar — exactly what
+            // the widest figure measures, capped. This chart is a 5/12 column
+            // at lg and full width below it, and neither a fixed pixel count
+            // nor a fixed share is right at both: the first clips the narrow
+            // one, the second strands a quarter of the wide one. `barValues`
+            // below reserves through the same function, so the two cannot
+            // disagree by construction rather than by agreement.
             layout: {
               padding: (ctx) => ({
-                right: Math.round((ctx.chart?.width ?? 0) * VALUE_GUTTER),
+                right: ctx.chart ? valueColumn(ctx.chart, displayFont).gutter : 0,
               }),
             },
             plugins: {
@@ -446,21 +495,16 @@ export function SubtypeBars({ bodyFont, displayFont }: Fonts) {
               id: "barValues",
               afterDatasetsDraw(chart) {
                 const meta = chart.getDatasetMeta(0);
-                const raw = chart.data.datasets[0]?.data ?? [];
                 const { ctx } = chart;
-                const labels = raw.map((value) => formatPaise(Number(value ?? 0)));
-                const gutter = chart.width * VALUE_GUTTER;
-                const offset = gutter * VALUE_OFFSET;
+                // The same call `layout.padding` made, so the figure is drawn
+                // into precisely the column that was reserved for it.
+                const { labels, offset, fontPx } = valueColumn(chart, displayFont);
 
                 ctx.save();
                 ctx.fillStyle = P.ink;
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
-                // Shrink to whatever the reserved gutter actually allows, so a
-                // long figure cannot run off the canvas the way a fixed size
-                // would. Bounded below, because an unreadable label is no
-                // better than a clipped one.
-                ctx.font = `400 ${fitFontPx(ctx, labels, gutter - offset, displayFont)}px ${displayFont}`;
+                ctx.font = `400 ${fontPx}px ${displayFont}`;
                 meta.data.forEach((bar, i) => {
                   ctx.fillText(labels[i] ?? "", bar.x + offset, bar.y + 1);
                 });
