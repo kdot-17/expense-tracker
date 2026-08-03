@@ -90,11 +90,12 @@ signing out someone already signed out.
 ### `addExpense(prevState, formData)` — `src/app/actions.ts`
 
 The one write action, and the model for every future one: **its first line is
-`await verifySession()`**, before a single field is read. It validates, resolves
-the (vertical, subtype) names to ids, inserts, calls `revalidatePath("/")` and
+`await verifySession()`**, before a single field is read. It validates —
+including rejecting dates that have not happened, in IST — resolves the
+(vertical, subtype) names to ids, inserts, calls `revalidatePath("/")` and
 returns `{ saved: true }` — no redirect; the dialog that posted it closes over
-the board the same response re-rendered. Every failure returns
-`{ error, field, values }` for the form rather than throwing, and constraint
+the board the same response re-rendered. Failures return `{ error, values }`
+(plus `field` when the error names one) rather than throwing, and constraint
 violations are caught and rewritten into readable messages.
 
 ## Routes

@@ -67,9 +67,12 @@ export function KpiStrip({
 }) {
   const s = stats(expenses, previousMonthTotalPaise, period.daysInMonth);
   const hasData = s.count > 0;
-  // No prior month is not "no change" — it is nothing to say. And a delta for
-  // a month with nothing in it yet would be a comparison of nothing.
-  const compare = hasData ? s.vsPrevious : null;
+  // Null only when no prior month is on file — that comparison is withheld,
+  // never shown as "no change". An empty current month against a recorded one
+  // is a real comparison, and the against-last-month strip draws the same
+  // deltas, so this tile must not contradict it by claiming there is nothing
+  // to compare.
+  const compare = s.vsPrevious;
 
   // Days that have actually happened. A month in progress has not had its
   // remaining days, and counting them as "days with nothing" would assert the
@@ -124,7 +127,9 @@ export function KpiStrip({
         value={hasData ? `${s.activeDays}/${elapsedDays}` : DASH}
         detail={
           hasData
-            ? `${elapsedDays - s.activeDays} days with nothing${period.isClosed ? "" : " so far"}`
+            ? // Floored at zero: the app refuses future-dated rows, but a row
+              // written around it (raw SQL) must not print a negative count.
+              `${Math.max(0, elapsedDays - s.activeDays)} days with nothing${period.isClosed ? "" : " so far"}`
             : undefined
         }
       />

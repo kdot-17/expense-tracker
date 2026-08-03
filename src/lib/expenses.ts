@@ -45,11 +45,22 @@ export type Expense = {
 export type MonthData = {
   /** Sorted by day ascending, then insertion order — the ledger's order. */
   expenses: Expense[];
-  /** Null while no prior month is on file; a number (possibly 0) otherwise. */
+  /**
+   * Null while the previous calendar month has nothing on file; a positive
+   * number otherwise (every recorded amount clears the > 0 CHECK, so an
+   * on-file month cannot total zero).
+   */
   previousMonthTotalPaise: number | null;
   /** Null while no prior month is on file — not the same as all-zero deltas. */
   previousMonthByVertical: Partial<Record<Vertical, number>> | null;
 };
+
+/**
+ * The soft cap on a note, enforced by the form's `maxLength` and re-checked by
+ * the action — the column itself is unbounded `text`, so the cap is
+ * presentation discipline the ledger's single-line rows depend on.
+ */
+export const NOTE_MAX_LENGTH = 140;
 
 /* --------------------------------------------------------------- selectors */
 
@@ -212,8 +223,10 @@ export type Stats = {
   activeDays: number;
   /**
    * Null when no prior month is on file — the comparison is withheld, never
-   * reported as "no change". `deltaPct` is null when the prior month totalled
-   * zero: a percentage against nothing is not a percentage.
+   * reported as "no change". `deltaPct` is null when the prior total is zero
+   * (a percentage against nothing is not a percentage) — unreachable while
+   * `previousMonthTotalPaise` keeps its null-or-positive contract, but the
+   * division guard is typed rather than assumed.
    */
   vsPrevious: { deltaPaise: number; deltaPct: number | null } | null;
 };

@@ -15,8 +15,13 @@
  * anything failing. See docs/money.md.
  */
 
-/** Postgres `integer` upper bound — the column type backing `amount_paise`. */
-const MAX_PAISE = 2_147_483_647;
+/**
+ * Postgres `integer` upper bound — the column type backing `amount_paise`.
+ * Exported so a caller can tell "over the cap" apart from "unparseable" and
+ * word the two failures differently, with the cap itself derived from here
+ * rather than typed into a message.
+ */
+export const MAX_PAISE = 2_147_483_647;
 
 /** Rupees, with an optional 1- or 2-digit paise fraction. No sign, no exponent. */
 const RUPEES_PATTERN = /^(\d+)(?:\.(\d{1,2}))?$/;

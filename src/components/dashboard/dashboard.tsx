@@ -145,7 +145,6 @@ export function Dashboard({ period, data }: { period: Period; data: MonthData })
                 <Tile index="04" title="Spend over time" className="lg:col-span-8">
                   <SpendLine
                     bodyFont={bodyFont}
-                    displayFont={displayFont}
                     daily={daily}
                     weekly={weekly}
                     hasData={totalPaise > 0}

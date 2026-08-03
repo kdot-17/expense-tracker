@@ -23,7 +23,7 @@ it is `120000` from the moment it is parsed until the moment it is printed.
 ### Amounts say so in their name
 
 Any identifier holding money carries a `Paise` suffix — `amountPaise`,
-`totalSpendPaise()`, `PREVIOUS_MONTH_TOTAL_PAISE`, `byDayPaise()`. So do the
+`totalSpendPaise()`, `previousMonthTotalPaise`, `byDayPaise()`. So do the
 formatters, which is the point of `formatPaise(paise)` rather than
 `formatINR(amount)`: the second one reads as correct when handed rupees, and
 that is how an amount ends up a hundred times too small with nothing failing.

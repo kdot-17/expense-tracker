@@ -134,10 +134,12 @@ treatment as the login form.
 
 On success the action returns `saved` instead of redirecting: it has already
 called `revalidatePath("/")`, so the same response carries a freshly rendered
-board, and the dialog closes over it — the new row standing in the ledger is
-the receipt, so the dialog needs no "saved" state of its own.
+board, and the dialog closes over it — for a current-month row, the new row
+standing in the ledger is the receipt (a backfilled prior-month row shows up
+in the against-last-month figures instead), so the dialog needs no "saved"
+state of its own.
 
-Three decisions worth knowing before touching it:
+Five decisions worth knowing before touching it:
 
 - **React 19 resets uncontrolled fields when a form action resolves.** The
   action therefore echoes the submitted strings back in `state.values`, and
@@ -145,6 +147,15 @@ Three decisions worth knowing before touching it:
   wipes the reader's typing along with showing the error. The error state also
   carries `field`, so `aria-describedby` points at the one field the message
   names rather than being sprayed across all four.
+- **Each open is a fresh attempt.** The dialog body is keyed on an opening
+  counter, so dismissing a failed half-filled form abandons it — reopening
+  does not resurrect a stale error over stale values. The error block is also
+  keyed per submit, so the same message twice is still a new `role="alert"`
+  node and gets announced both times.
+- **The dialog cannot close while a submit is in flight.** `Esc` is blocked in
+  `onCancel` and Cancel is disabled while `pending` — a dialog that closes
+  mid-action would swallow the action's answer, and a failure nobody saw
+  reads as a success.
 - **The picker is one grouped `<select>`** — ten `<optgroup>`s in
   `VERTICAL_ORDER`, options in `SUBTYPES` order, value `subtypeKey`
   (`"Food/Swiggy"`). The (vertical, name) pair stays atomic in a single
@@ -157,11 +168,14 @@ Three decisions worth knowing before touching it:
 
 The amount field is `type="text"` with `inputMode="decimal"` per
 [money.md](money.md), never `type="number"`. The date input submits
-`"YYYY-MM-DD"` by spec whatever the display locale, and defaults to today in
-IST, computed by the server that rendered the band. Opening the dialog needs
-JavaScript — the one exception to the forms-work-without-JS preference below,
-and the price of an overlay; the action itself still validates everything
-server-side.
+`"YYYY-MM-DD"` by spec whatever the display locale; it defaults to today in
+IST, computed at open time (each open remounts the dialog body, so a board
+left up overnight still defaults to the right day), and carries
+`max={today}` mirroring the action's no-future-days rule — an expense dated
+tomorrow would have the calendar, the KPI strip and the spend line disagreeing
+about the same rupees. Opening the dialog needs JavaScript — the one
+exception to the forms-work-without-JS preference below, and the price of an
+overlay; the action itself still validates everything server-side.
 
 ## Conventions
 

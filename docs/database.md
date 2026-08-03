@@ -311,10 +311,13 @@ unique indexes, which is what leaves the seed safe to re-apply.
 
 The dashboard's one read is `getMonthData()` in `src/lib/expenses-data.ts`
 (`server-only`): it calls `verifySession()`, then issues a single `db.batch()`
-— the period's rows joined to their names, the previous month's totals
-aggregated in SQL, and an any-history check. A batch is one HTTP roundtrip on
-the neon-http driver instead of one per query, and it runs as a single
-non-interactive transaction, so the three reads are a consistent snapshot.
+— the period's rows joined to their names, and the previous month's totals
+aggregated in SQL. "Prior month on file" means rows in the previous calendar
+month itself, not merely anything older: history with a gap month between
+would otherwise report a "last month" total of zero, a figure describing a
+month nobody recorded. A batch is one HTTP roundtrip on the neon-http driver
+instead of one per query, and it runs as a single non-interactive
+transaction, so the reads are a consistent snapshot.
 
 Writes are server actions (see [conventions.md](conventions.md)); creating an
 expense is `addExpense` in `src/app/actions.ts`, which resolves the

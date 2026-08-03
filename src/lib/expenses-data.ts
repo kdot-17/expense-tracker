@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, between, eq, lt, sql } from "drizzle-orm";
+import { asc, between, eq, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { expenses, subtypes, verticals } from "@/db/schema";
@@ -33,10 +33,9 @@ function asVertical(name: string): Vertical {
  *
  * A batch matters twice over on neon-http. The driver is one HTTP roundtrip
  * per query — Singapore per query, from wherever the server runs — and a
- * batch is one roundtrip for all three. It also executes as a single
- * non-interactive transaction, so the rows, the previous-month totals and the
- * history check are a consistent snapshot rather than three reads an insert
- * could land between.
+ * batch is one roundtrip for both. It also executes as a single
+ * non-interactive transaction, so the rows and the previous-month totals are
+ * a consistent snapshot rather than two reads an insert could land between.
  *
  * The current month's aggregates are deliberately *not* SQL: the ledger needs
  * every row anyway, so the page derives its totals from rows it already holds
@@ -51,7 +50,7 @@ export async function getMonthData(period: Period): Promise<MonthData> {
   const db = getDb();
   const previous = previousPeriodOf(period);
 
-  const [rows, previousGroups, prior] = await db.batch([
+  const [rows, previousGroups] = await db.batch([
     // The month's rows, oldest first — the ledger's own order. Names come from
     // a join rather than the taxonomy module: the database is the authority on
     // what an id is called, and seed order differs from slot order on purpose.
@@ -81,15 +80,6 @@ export async function getMonthData(period: Period): Promise<MonthData> {
       .innerJoin(verticals, eq(expenses.verticalId, verticals.id))
       .where(between(expenses.spentOn, previous.firstDay, previous.lastDay))
       .groupBy(verticals.name),
-
-    // Whether any month before this one is on file at all. "No prior month" and
-    // "a prior month that totalled zero" are different facts, and the strip
-    // renders them differently — see MonthData's null contract.
-    db
-      .select({ one: sql<number>`1` })
-      .from(expenses)
-      .where(lt(expenses.spentOn, period.firstDay))
-      .limit(1),
   ]);
 
   const monthExpenses: Expense[] = rows.map((row) => ({
@@ -101,12 +91,11 @@ export async function getMonthData(period: Period): Promise<MonthData> {
     ...(row.note === null ? {} : { note: row.note }),
   }));
 
-  const hasHistory = prior.length > 0;
-  const previousMonthByVertical = hasHistory
-    ? Object.fromEntries(
-        previousGroups.map((group) => [asVertical(group.vertical), group.totalPaise]),
-      )
-    : null;
+  // "Prior month on file" means rows in the previous calendar month itself,
+  // not merely anything older. History with a gap month between would
+  // otherwise report "last month: ₹0" — a figure describing a month nobody
+  // recorded, which the CHECK constraint means no recorded month can produce.
+  const hasHistory = previousGroups.length > 0;
 
   return {
     expenses: monthExpenses,
@@ -115,6 +104,10 @@ export async function getMonthData(period: Period): Promise<MonthData> {
     previousMonthTotalPaise: hasHistory
       ? previousGroups.reduce((sum, group) => sum + group.totalPaise, 0)
       : null,
-    previousMonthByVertical,
+    previousMonthByVertical: hasHistory
+      ? Object.fromEntries(
+          previousGroups.map((group) => [asVertical(group.vertical), group.totalPaise]),
+        )
+      : null,
   };
 }

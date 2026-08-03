@@ -1,7 +1,6 @@
 import { logout } from "@/app/login/actions";
 import { AddExpense } from "@/components/dashboard/add-expense";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { todayInIST } from "@/lib/period";
 
 const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
 
@@ -34,7 +33,7 @@ export function Masthead({
               the chrome controls trail. It opens the add-expense dialog —
               labelled in words, not "+": see the theme toggle's own note on
               ambiguous glyphs. */}
-          <AddExpense today={todayInIST()} />
+          <AddExpense />
           <ThemeToggle />
           {/* A plain form posting to a Server Action, so signing out still
               works if the client bundle never loads. */}

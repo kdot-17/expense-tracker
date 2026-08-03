@@ -7,13 +7,14 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { expenses, subtypes, verticals } from "@/db/schema";
 import { verifySession } from "@/lib/dal";
-import { parseRupeesToPaise } from "@/lib/money";
-import { isValidDateString } from "@/lib/period";
+import { NOTE_MAX_LENGTH } from "@/lib/expenses";
+import { formatPaise, MAX_PAISE, parseRupeesToPaise } from "@/lib/money";
+import { isValidDateString, todayInIST } from "@/lib/period";
 
 export type AddExpenseState = {
   error?: string;
   /** Which field the error names, so the form can point aria-describedby at it. */
-  field?: "amount" | "subtype" | "spentOn";
+  field?: "amount" | "subtype" | "spentOn" | "note";
   /**
    * Echo of what was submitted. React 19 resets uncontrolled fields when a
    * form action resolves, so without this a failed submit would wipe the
@@ -51,7 +52,16 @@ export async function addExpense(
   // caller's job (docs/money.md) — the CHECK constraint is the backstop.
   const amountPaise = parseRupeesToPaise(amountRaw);
   if (amountPaise === null) {
-    return fail("amount", "Enter the amount in rupees, like 249 or 1,249.50.");
+    // The parser returns null for junk and for overflow alike; a well-formed
+    // figure over the cap deserves the true reason, not a format correction.
+    // The cap in the message is derived, never typed (repo law on figures).
+    const wellFormed = /^\d+(?:\.\d{1,2})?$/.test(amountRaw.replace(/[₹,\s]/g, ""));
+    return fail(
+      "amount",
+      wellFormed
+        ? `That's more than this tracker can hold — the most is ${formatPaise(MAX_PAISE)}.`
+        : "Enter the amount in rupees, like 249 or 1,249.50.",
+    );
   }
   if (amountPaise === 0) {
     return fail("amount", "An expense must be more than ₹0.");
@@ -67,6 +77,12 @@ export async function addExpense(
     return fail("subtype", "Pick a subtype.");
   }
 
+  // The form's maxLength is browser-side only; a direct POST skips it, and
+  // the ledger's single-line rows are why the cap exists at all.
+  if (noteRaw.length > NOTE_MAX_LENGTH) {
+    return fail("note", `Keep the note under ${NOTE_MAX_LENGTH} characters.`);
+  }
+
   if (!spentOn) {
     return fail("spentOn", "Enter the date.");
   }
@@ -77,6 +93,13 @@ export async function addExpense(
   }
   if (!isValidDateString(spentOn)) {
     return fail("spentOn", "That date doesn't exist — check the day and month.");
+  }
+  // No future expenses: the board treats days that have not happened as
+  // unknowable (no NIL, no elapsed-day count), and a row dated tomorrow would
+  // have three modules disagreeing about the same rupees. ISO strings compare
+  // as dates do. Backfilling the past stays allowed.
+  if (spentOn > todayInIST()) {
+    return fail("spentOn", "That day hasn't happened yet.");
   }
 
   // Names → the (subtype id, vertical id) pair. Case-insensitive to match the

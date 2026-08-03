@@ -351,14 +351,15 @@ export function SpendLine({
   weekly,
   hasData,
   fill = false,
-}: Fonts &
-  Fillable & {
-    /** Paise per day, one entry per day of the month. */
-    daily: number[];
-    weekly: { label: string; amountPaise: number }[];
-    /** Computed server-side — the empty case is decided where the data is. */
-    hasData: boolean;
-  }) {
+}: Fillable & {
+  /** No display face here — every figure this chart draws is a tick. */
+  bodyFont: string;
+  /** Paise per day, one entry per day of the month. */
+  daily: number[];
+  weekly: { label: string; amountPaise: number }[];
+  /** Computed server-side — the empty case is decided where the data is. */
+  hasData: boolean;
+}) {
   const { theme, P } = useChartTheme();
   const [grain, setGrain] = useState<Grain>("daily");
   const isDaily = grain === "daily";

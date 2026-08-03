@@ -59,25 +59,29 @@ export function CalendarBlock({
 
           const paise = daily[day - 1];
           // A day that has not happened yet is not a day nothing moved — the
-          // hatch asserts a fact, and there is no fact about tomorrow. Future
-          // days draw plain, whatever the rest of the month says.
-          const future = todayDay !== null && day > todayDay;
-          const quiet = known && !future && paise === 0;
+          // hatch asserts a fact, and there is no fact about tomorrow. But
+          // that cuts one way only: a zero on a future day draws plain, while
+          // a *recorded* amount is a fact the page holds and paints wherever
+          // it sits, or the calendar would disagree with the total and the
+          // spend line over the same rupees.
+          const beyondToday = todayDay !== null && day > todayDay;
+          const painted = paise > 0;
+          const quiet = known && !beyondToday && paise === 0;
           const step = rampStep(paise);
 
           return (
             <div
               key={day}
               title={
-                !known || future
-                  ? `Day ${day}`
+                painted
+                  ? `Day ${day} — ${formatPaise(paise)}`
                   : quiet
                     ? `Day ${day} — nothing moved`
-                    : `Day ${day} — ${formatPaise(paise)}`
+                    : `Day ${day}`
               }
               className="flex aspect-square flex-col justify-between overflow-hidden p-1 sm:p-1.5"
               style={{
-                background: !known || future || quiet ? undefined : `var(--ramp-${step})`,
+                background: painted ? `var(--ramp-${step})` : undefined,
                 backgroundImage: quiet ? QUIET_FILL : undefined,
                 color: quiet ? "var(--ink)" : `var(--ramp-on-${step})`,
                 outline: "2px solid var(--rule)",
@@ -99,7 +103,7 @@ export function CalendarBlock({
                   padding: quiet ? "0.0625rem 0.125rem" : undefined,
                 }}
               >
-                {!known || future ? "" : quiet ? "NIL" : formatPaiseCompact(paise)}
+                {painted ? formatPaiseCompact(paise) : quiet ? "NIL" : ""}
               </span>
             </div>
           );
