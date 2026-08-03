@@ -16,7 +16,18 @@ no shadows, no gradients. One condensed display face doing all the shouting and
 one quiet grotesque doing the talking. Area and length carry the numbers; colour
 only ever carries *identity*, never magnitude and never sentiment.
 
-The page is a document you read top to bottom, not a dashboard you scan.
+**The page is a board you scan, not a document you read top to bottom.** It was
+the second of those until the tabbed layout landed, and the change is worth
+recording rather than quietly reversing: a monthly review answers three separate
+questions, and stacking their answers in reading order meant scrolling past two
+of them to reach the third. The poster grammar is unchanged — the same rules,
+the same flat blocks, the same two faces. What went is the poster *pacing*: one
+full-bleed section per screenful, and the section standfirsts that went with it.
+
+The display face now shouts in the stat figures rather than in seven headings,
+and a section heading is a micro-caps label welded to the top of its tile. That
+is a real loss of poster drama, taken deliberately in exchange for every module
+being reachable without scrolling. See §7 for what the layout has to guarantee.
 
 ### Reference
 
@@ -28,12 +39,14 @@ The page is a document you read top to bottom, not a dashboard you scan.
 
 > Captured against temporary sample data, then reverted, and kept as the
 > **visual reference for what a populated page should look like**. The app ships
-> with no data wired, so the running page shows this same layout in its empty
+> with no data wired, so the running page shows the same modules in their empty
 > states.
 >
-> They are re-shot whenever the palette or the taxonomy changes — the set above
-> is the ten-vertical palette, and any screenshot showing seven slots or the
-> words "Rent & home" is stale and should be replaced, not trusted.
+> **These predate the board and show the old document layout** — full-bleed
+> sections, poster headings, one module per screenful. Trust them for colour,
+> type and the modules themselves; do not trust them for layout. They are
+> re-shot whenever the palette or the taxonomy changes, and any screenshot
+> showing seven slots or the words "Rent & home" is stale twice over.
 
 Both themes are first-class. Neither is "the real one with a filter over it" —
 the ramp inverts direction, the rules invert polarity, and the categorical hexes
@@ -137,7 +150,7 @@ mixed: five slots take white ink and five take near-black. Check 8 enforces it.
 | `--muted` | `#6E6E6E` | `#8A8A8A` | micro-caps, axis ticks |
 | `--grid` | `#DDD9CF` | `#262626` | chart gridlines, light row rules |
 | `--rule` | `#111111` | `#FFFFFF` | every heavy border |
-| `--bar` / `--on-bar` | `#111111` / `#F5F3ED` | `#171717` / `#FFFFFF` | masthead, footer, verdict block |
+| `--bar` / `--on-bar` | `#111111` / `#F5F3ED` | `#171717` / `#FFFFFF` | masthead |
 | `--focus` | `#3D74D9` | `#3D74D9` | the focus ring — one value, both themes |
 
 `--focus` is deliberately **not** a categorical slot. The ring can land on any
@@ -325,26 +338,86 @@ Resolution order: `data-theme` on `<html>` → `prefers-color-scheme` → light.
 
 ## 7. Layout
 
-- Page max width `85rem`, gutters `px-4 / sm:px-6 / lg:px-10`.
-- Sections are a 12-column grid at `lg`, stacked below it.
-- Vertical rhythm between sections: `gap-10`, `lg:gap-14`.
-- Nothing may cause horizontal page scroll between 360px and 1800px, and there
-  are **two** strategies for that, not one:
-  - **Scroll box** — the ledger only. Its `min-w-[26.25rem]` table sits in an
-    `overflow-x-auto` container, which is `tabIndex={0}` + `role="group"`
-    because a scroll container nothing can focus is unreachable by keyboard.
-  - **Stay fluid** — the calendar and treemap have no scroll box. The calendar
-    is a `grid-cols-7` of `aspect-square` cells; the treemap is
-    percentage-positioned cells in an `aspect-ratio` frame, with a taller ratio
-    swapped in below `md`. Adding a scroll box to either would defeat this.
+The dashboard route is a **fixed-viewport board**: a KPI strip that never moves,
+and three tabbed views under it. At `lg` and up the page itself does not scroll
+at all. Below `lg` the board stacks and the page scrolls normally — seven
+modules in a locked phone viewport would be seven unreadable slivers.
 
-    That swap stays at `md` and not later: the portrait ratio is 0.78, so at a
-    1023px viewport it would stand 1250px tall. Slivers too narrow to label
-    keep their name and drop the amount and the share badge, each sized from
-    its own cell (`xsLabelSize`) — the ratio is not what fixes them.
-- Grid children need `min-w-0`. A grid item defaults to `min-width: auto`, so a
-  chart canvas or a wide table sets its track's floor at content width and
-  pushes the whole page sideways.
+- Board max width `1800px`, padding `p-2.5 / lg:p-3`. The document max width of
+  `85rem` still applies to the masthead and to the login page.
+- Each panel is a 12-column grid at `lg`, stacked below it.
+- Gaps are `gap-2.5 / lg:gap-3`. The document's `gap-10 / lg:gap-14` rhythm was
+  separating full-bleed sections; on a board it is dead space.
+
+### The six rules a fixed-viewport board has to obey
+
+Each of these has already broken this layout once.
+
+1. **`flex-1` beats `height` in a column flex container.** `flex-1` sets
+   `flex-basis: 0%`, and the basis *is* the main axis size in a column — so
+   `h-dvh` alongside it does nothing, the board grows to content height, and the
+   `overflow-hidden` meant to clip it has nothing to clip. The wrapper carries
+   `lg:h-dvh lg:flex-none lg:overflow-hidden`, and `flex-none` is load-bearing.
+2. **Rows are `minmax(0, 1fr)`, never `1fr`.** Tailwind's `grid-rows-2` /
+   `grid-rows-3` already expand to the former. A bare `1fr` row floors at its
+   content height and the grid silently grows past the viewport.
+3. **A tile clips its own contents.** A module whose internal scroll box is
+   taller than the cell it was dealt paints over its neighbours — the pie's
+   ten-row legend did exactly that, across the KPI strip above it. `Tile`'s body
+   carries `overflow-hidden`; do not remove it to "fix" a cut-off module. Give
+   the module a scroll box instead.
+4. **Inactive tab panels are unmounted, not hidden.** A Chart.js canvas mounted
+   inside `display: none` gets a zero-size parent and, with
+   `maintainAspectRatio: false`, never recovers its size. `TabShell` renders
+   only the active panel.
+5. **Every scroll box is focusable and named**, not just the ledger's. The board
+   turned three more modules into scroll boxes — the pie's legend, the
+   month-on-month strip and the calendar — and a scroll container nothing can
+   focus is unreachable by keyboard, so the rows below the fold do not exist for
+   a keyboard reader. Each carries `tabIndex={0}` + `role="group"` +
+   `aria-label`. Add a scroll box, add all three.
+6. **A tile column cannot be assumed wide.** A module in a `lg:col-span-4` tile
+   gets ~200px of usable row width at 1366px. The pie's legend row had a fixed
+   index, amount and percentage column; the name was `flex-1`, so it resolved to
+   **0px** and ten slices rendered as coloured swatches with no names — breaking
+   §2 rule 4. In `fill` mode the legend drops its index and percentage: the slot
+   order is frozen so the number is decoration, and the pie beside it already
+   carries the share as an angle. Anything competing for width in a narrow tile
+   needs the same arithmetic done before it ships.
+
+Modules that can grow take a `fill` prop, which swaps their fixed chart height
+for one that grows into the cell. Filling still needs `min-h-0` on every flex
+ancestor — see §5 rule 4. The calendar has no `fill`: it is a grid of
+`aspect-square` cells, so its height follows its width and cannot be told to
+fit. It gets a scroll box rather than being squashed out of square.
+
+### Horizontal scroll
+
+Nothing may cause horizontal *page* scroll between 360px and 1800px, and there
+are **two** strategies for that, not one:
+
+- **Scroll box** — the ledger only, for the *horizontal* axis. Its
+  `min-w-[26.25rem]` table sits in an `overflow-x-auto` container, which is
+  `tabIndex={0}` + `role="group"` because a scroll container nothing can focus
+  is unreachable by keyboard. (Vertical scroll boxes are a separate list — see
+  rule 5 above; all of them carry the same three attributes.)
+- **Stay fluid** — the calendar and treemap have no scroll box. The calendar is
+  a `grid-cols-7` of `aspect-square` cells; the treemap is percentage-positioned
+  cells in a frame whose shape comes from `ratio` — as an `aspect-ratio` in the
+  document sizing, or as the parent's own height under `fill`. Either way
+  `ratio` still decides how squarify splits the frame, so a wider frame is a
+  different packing and not just a stretched one. Three ratios ship: `1.4` at
+  `lg`, `1.85` at `md`, `0.78` below that. Adding a scroll box to either module
+  would defeat this.
+
+  That swap stays at `md` and not later: the portrait ratio is 0.78, so at a
+  1023px viewport it would stand 1250px tall. Slivers too narrow to label keep
+  their name and drop the amount and the share badge, each sized from its own
+  cell (`xsLabelSize`) — the ratio is not what fixes them.
+
+Grid children need `min-w-0`. A grid item defaults to `min-width: auto`, so a
+chart canvas or a wide table sets its track's floor at content width and pushes
+the whole page sideways.
 
 ### Units
 
@@ -395,11 +468,16 @@ the space reserved and the space drawn into cannot drift apart.
 ```
 src/app/globals.css              design tokens, both themes   ← start here
 src/app/layout.tsx               font vars + theme bootstrap, shell
-src/app/page.tsx                 the dashboard route (auth-gated)
+src/app/page.tsx                 the dashboard route (auth-gated) — see §7 rule 1
 src/app/icon.svg                 the app mark — see "The app icon" below
 src/app/favicon.ico              the same mark, 16/32/48, for Safari and legacy
 src/app/apple-icon.png           the same mark, 180px, for iOS home screens
-src/components/dashboard/        the page itself, one file per section
+src/components/dashboard/        the board itself, one file per module
+  dashboard.tsx                  which module sits in which tab and cell
+  tab-shell.tsx                  the view switcher — the only client component
+  tile.tsx                       the bordered box a module lives in
+  kpi-strip.tsx                  the four figures above the tabs
+  frames.ts                      plot frame shapes, shared with the empty state
 src/components/theme-toggle.tsx  the light/dark control
 src/lib/chart-setup.ts           Chart.js registration — see §5
 src/lib/fonts.ts                 the two faces — see §4
@@ -413,7 +491,7 @@ scripts/palette-check.mjs        the validator
 ```
 
 `src/lib/expenses.ts` is the seam. `EXPENSES` is empty, so every selector
-returns the zero case and the page renders its full scaffold with empty states.
+returns the zero case and the board renders its full scaffold with empty states.
 Wiring a real source means changing that module and nothing else — keep the
 exported signatures stable, because the whole page reads through them. Its
 shapes already match `src/db/schema.ts`: integer paise, and both a vertical and
@@ -473,6 +551,9 @@ npm run verify      # typecheck + lint + palette + build
 and by eye, in **both** themes:
 
 - [ ] no horizontal scroll at 360px
+- [ ] **no vertical page scroll at `lg` and up** — `scrollHeight === innerHeight`
+- [ ] every tab reached, including with arrow keys, and every chart sized in each
+- [ ] no module painting outside its tile (check the tile below a long legend)
 - [ ] the daily/weekly toggle re-derives labels, values *and* annotations
 - [ ] every new colour came from a token, not a hex typed inline
 - [ ] every new number in prose is derived from the data, not asserted

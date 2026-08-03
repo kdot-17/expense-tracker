@@ -12,9 +12,12 @@ src/
     globals.css        Tailwind import and theme tokens
   components/
     theme-toggle.tsx   The light/dark control (client)
-    dashboard/         One file per section of the page
-      dashboard.tsx    Section order and the headline block
-      masthead.tsx     The top band and the footer colophon
+    dashboard/         One file per module of the board
+      dashboard.tsx    Which module sits in which tab and cell
+      tab-shell.tsx    The Overview/Breakdown/Ledger switcher (client)
+      tile.tsx         The bordered box a module lives in
+      kpi-strip.tsx    The four figures above the tabs
+      masthead.tsx     The top band
       charts.tsx       The three Chart.js canvases (client)
       treemap.tsx      Verticals containing their subtypes, to scale
       squarify.ts      Squarified treemap layout, no dependencies
@@ -54,8 +57,9 @@ docs/                  This documentation
   Because they *are* routes, the proxy matcher has to exempt each one — see
   [auth.md](auth.md).)
 - **`src/components/`** holds everything that renders but is not a route. The
-  dashboard is split one file per section rather than one long page, because the
-  sections are independently readable and independently broken.
+  dashboard is split one file per module rather than one long page, because the
+  modules are independently readable and independently broken. `dashboard.tsx`
+  itself only decides which module sits in which tab and which grid cell.
 - **`src/db/`** and **`src/lib/`** are outside the router entirely, so nothing in
   them can be reached by URL. The tables in `schema.ts` create no routes.
 - **`drizzle/`** holds generated SQL and is committed, so the schema is
@@ -66,7 +70,7 @@ docs/                  This documentation
 `src/db/` reads real expenses out of Postgres. `src/lib/expenses.ts` is what the
 page actually renders, and it is **empty** — no query runs. The shapes match on
 purpose (integer paise, a vertical and a subtype on every row), so connecting
-them is a matter of filling that one module. Until then the page is a complete
+them is a matter of filling that one module. Until then the board is a complete
 scaffold showing honest empty states, and no component knows the difference.
 
 ## Imports
@@ -81,15 +85,18 @@ import { getDb } from "@/db";
 ## Server and client boundaries
 
 Almost everything is a Server Component. Only files that need browser state carry
-`"use client"` — currently just `login-form.tsx`, which uses `useActionState`.
+`"use client"`: `login-form.tsx` (`useActionState`), `theme-toggle.tsx`,
+`charts.tsx` (Chart.js needs a canvas) and `tab-shell.tsx` (which view is on
+screen). `TabShell`'s panels are rendered on the server and handed to it as
+props, so the tabs cost no extra client markup.
 
 `src/db/index.ts`, `src/lib/dal.ts`, and `src/lib/session.ts` are marked
 `server-only`, so importing them from a client component fails the build instead
 of leaking a connection string or a session secret into the browser bundle.
 
-Keep client components as leaves. When charts arrive, the server should compute
-the totals and pass plain numbers down as props, rather than letting a client
-component fetch and aggregate.
+Keep client components as leaves. The charts read their totals through the
+`expenses.ts` seam rather than fetching or aggregating themselves, so the
+client bundle carries rendering and nothing else.
 
 ## Configuration files
 

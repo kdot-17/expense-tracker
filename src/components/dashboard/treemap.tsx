@@ -203,23 +203,29 @@ export function Treemap({
   ratio,
   className,
   compact = false,
+  fill = false,
 }: {
   ratio: number;
   className?: string;
   /** The narrow layout: poster-scale type in a cell a couple of hundred pixels
       wide, where even a mid-sized cell cannot hold a full figure. */
   compact?: boolean;
+  /** Take the parent's height instead of deriving it from `ratio`. The cells
+      are percentage-positioned either way; `ratio` still decides how squarify
+      splits the frame, it just stops dictating how tall the frame is. */
+  fill?: boolean;
 }) {
   const total = totalSpendPaise();
   const verticals = byVertical().filter((entry) => entry.amountPaise > 0);
   const subtypes = bySubtype();
   const frame: Rect = { x: 0, y: 0, w: ratio, h: 1 };
+  const sizing = fill ? undefined : { aspectRatio: String(ratio) };
 
   // squarify divides by the total, so an empty month is not a degenerate
   // layout — it is simply nothing to lay out.
   if (total === 0) {
     return (
-      <div className={className} style={{ aspectRatio: String(ratio) }}>
+      <div className={`${fill ? "min-h-0 flex-1" : ""} ${className ?? ""}`} style={sizing}>
         <EmptyPlot className="h-full" />
       </div>
     );
@@ -232,8 +238,10 @@ export function Treemap({
 
   return (
     <div
-      className={`border-rule bg-rule @container relative w-full border-2 ${className ?? ""}`}
-      style={{ aspectRatio: String(ratio) }}
+      className={`border-rule bg-rule @container relative w-full border-2 ${
+        fill ? "min-h-0 flex-1" : ""
+      } ${className ?? ""}`}
+      style={sizing}
     >
       {placed.map(({ item: vertical, rect }) => {
         const members = subtypes.filter((entry) => entry.vertical === vertical);

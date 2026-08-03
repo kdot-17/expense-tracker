@@ -248,6 +248,12 @@
      around, so it is accepted that it would overflow. */
   --text-total: clamp(2.25rem, 18cqi, 5.6rem);
   --text-section: clamp(1.35rem, 7cqi, 2.35rem);
+  /* The board's stat tiles are a quarter of the row at `lg` and a half below
+     it, so a KPI figure is sized against its own tile for the same reason the
+     total is: the tile's width is a fixed fraction of the page, not of the
+     viewport. The ceiling is low because four of these sit in one row and the
+     longest of them is a vertical's *name*, not a figure. */
+  --text-kpi: clamp(1.1rem, 9cqi, 1.7rem);
   --text-statement: clamp(1.8rem, 8cqi, 3.4rem);
   /* The sign-in card is `max-w-sm`, so its width stops growing long before the
      viewport does — the same mismatch as the total, on a smaller scale. */

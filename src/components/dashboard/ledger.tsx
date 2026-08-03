@@ -2,15 +2,26 @@ import { EXPENSES } from "@/lib/expenses";
 import { formatPaise } from "@/lib/money";
 import { slotOf } from "@/lib/taxonomy";
 
-export function Ledger() {
+/**
+ * `fill` grows the scroll box into its parent instead of capping it at 560px.
+ *
+ * The `max-lg:` floor is not decoration: below `lg` the board is one auto-sized
+ * column, so `flex-1` resolves against nothing and the table collapses to its
+ * header. At `lg` the row height is the authority and the floor is dropped.
+ */
+export function Ledger({ fill = false }: { fill?: boolean }) {
   return (
-    <div className="border-2 border-rule bg-card">
+    <div
+      className={`border-2 border-rule bg-card ${fill ? "flex min-h-0 flex-1 flex-col" : ""}`}
+    >
       {/* Scrolls in both axes, so it needs to be focusable — a keyboard-only
           reader cannot reach a scroll container that nothing can focus. */}
       <div
-        // Height in rem, not px: at a larger browser font the rows grow, and a
-        // frozen box would simply show fewer of them.
-        className="max-h-[35rem] overflow-x-auto overflow-y-auto"
+        // Heights in rem, not px: at a larger browser font the rows grow, and
+        // a frozen box would simply show fewer of them.
+        className={`overflow-x-auto overflow-y-auto ${
+          fill ? "min-h-0 flex-1 max-lg:min-h-[26.25rem]" : "max-h-[35rem]"
+        }`}
         tabIndex={0}
         role="group"
         aria-label="The ledger — every expense this month, scrolls"
