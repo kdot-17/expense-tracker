@@ -1,20 +1,28 @@
 /**
- * The data layer, and the seam the whole dashboard reads through.
+ * The selectors the dashboard reads through — pure functions over the month
+ * the page fetched.
  *
- * There is no store wired up yet, so `EXPENSES` is empty and every selector
- * below returns the zero case. The page renders its full scaffold against
- * that — charts, calendar, ledger and all — so wiring the database in later
- * means replacing this module's data and nothing else. Keep the exported
- * signatures stable.
+ * The database side lives in `src/lib/expenses-data.ts` (`server-only`); this
+ * module stays importable from anywhere because it holds no state and touches
+ * no store. `page.tsx` fetches one `MonthData` per render and threads it down,
+ * so a client component only ever receives computed plain values — it never
+ * aggregates, per docs/conventions.md.
  *
  * Shapes here mirror `expenses` in `src/db/schema.ts`: an amount is an integer
  * number of **paise**, and an expense points at both its subtype and its
  * vertical, exactly as the composite foreign key stores it. There is
  * deliberately no `merchant` field — the schema has no such column, and the
  * question "which app did the money go to" is answered by the subtype.
+ *
+ * The unknown case is typed, not remembered: `MonthData`'s previous-month
+ * fields are `null` when no prior month is on file, which is a different thing
+ * from a prior month that totalled zero, and the selectors pass that null
+ * through rather than manufacturing ten zeroes for a comparison nobody made.
  */
 
+import type { Period } from "@/lib/period";
 import {
+  slotOf,
   SUBTYPES,
   subtypeKey,
   VERTICAL_ORDER,
@@ -33,80 +41,20 @@ export type Expense = {
   note?: string;
 };
 
-/** Nothing is connected yet. */
-export const EXPENSES: Expense[] = [];
-
-/**
- * Last month's closing total in paise, for the month-over-month strip.
- *
- * Annotated `number` rather than left to inference: as a bare literal, TypeScript
- * types it `0`, and `stats()` comparing it against zero then becomes a comparison
- * of two literal types. Setting it to any real figure would fail the build with
- * "these types have no overlap" — an error about the placeholder, not the code.
- */
-export const PREVIOUS_MONTH_TOTAL_PAISE: number = 0;
-
-/* ------------------------------------------------------------------ period */
-
-const now = new Date();
-
-/** 0 = Monday, to match the calendar's column order. */
-function mondayFirst(jsDay: number): number {
-  return (jsDay + 6) % 7;
-}
-
-export const PERIOD = {
-  year: now.getFullYear(),
-  month: now.getMonth(),
-  label: now.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
-  daysInMonth: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
-  firstWeekday: mondayFirst(new Date(now.getFullYear(), now.getMonth(), 1).getDay()),
+/** One month as the page fetches it — see `getMonthData` in expenses-data.ts. */
+export type MonthData = {
+  /** Sorted by day ascending, then insertion order — the ledger's order. */
+  expenses: Expense[];
+  /** Null while no prior month is on file; a number (possibly 0) otherwise. */
+  previousMonthTotalPaise: number | null;
+  /** Null while no prior month is on file — not the same as all-zero deltas. */
+  previousMonthByVertical: Partial<Record<Vertical, number>> | null;
 };
-
-export const DAYS_IN_MONTH = PERIOD.daysInMonth;
-export const FIRST_WEEKDAY = PERIOD.firstWeekday;
-export const MONTH_LABEL = PERIOD.label;
-
-/**
- * Whether the period being shown has actually finished. Derived, never typed as
- * a literal: the masthead used to say "closed" unconditionally, which claimed a
- * month was final on its third day. Once PERIOD becomes selectable this stays
- * correct without the caller remembering to.
- */
-export const PERIOD_IS_CLOSED =
-  PERIOD.year < now.getFullYear() ||
-  (PERIOD.year === now.getFullYear() && PERIOD.month < now.getMonth());
-
-/**
- * Monday-first, matching FIRST_WEEKDAY and the calendar's column order.
- * Declared here rather than in a component so every weekday label in the app
- * comes from one place — the calendar grid and its median strip used to
- * disagree, one showing "M T W" and the other "Mon Tue Wed".
- */
-export const WEEKDAYS_LONG = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-] as const;
-
-export const WEEKDAYS_SHORT = [
-  "Mon",
-  "Tue",
-  "Wed",
-  "Thu",
-  "Fri",
-  "Sat",
-  "Sun",
-] as const;
 
 /* --------------------------------------------------------------- selectors */
 
-export function totalSpendPaise(): number {
-  return EXPENSES.reduce((sum, e) => sum + e.amountPaise, 0);
+export function totalSpendPaise(expenses: Expense[]): number {
+  return expenses.reduce((sum, e) => sum + e.amountPaise, 0);
 }
 
 /**
@@ -117,9 +65,11 @@ export function totalSpendPaise(): number {
  * verticals would shift every colour as soon as one month happened to have no
  * Health spending.
  */
-export function byVertical(): { vertical: Vertical; amountPaise: number }[] {
+export function byVertical(
+  expenses: Expense[],
+): { vertical: Vertical; amountPaise: number }[] {
   const totals = new Map<Vertical, number>();
-  for (const e of EXPENSES) {
+  for (const e of expenses) {
     totals.set(e.vertical, (totals.get(e.vertical) ?? 0) + e.amountPaise);
   }
   return VERTICAL_ORDER.map((vertical) => ({
@@ -128,30 +78,42 @@ export function byVertical(): { vertical: Vertical; amountPaise: number }[] {
   }));
 }
 
-/** Subtypes with money against them, in taxonomy order. Empty ones are dropped. */
-export function bySubtype(): (SubtypeRef & { amountPaise: number })[] {
-  const totals = new Map<string, number>();
-  for (const e of EXPENSES) {
-    const key = subtypeKey({ vertical: e.vertical, name: e.subtype });
-    totals.set(key, (totals.get(key) ?? 0) + e.amountPaise);
+/**
+ * Subtypes with money against them, in taxonomy order. Empty ones are dropped.
+ *
+ * Grouped from the rows rather than by walking the taxonomy, so money filed
+ * under a subtype this module has never heard of still shows up — a row the
+ * treemap silently dropped while the total kept counting it would be the page
+ * disagreeing with itself. Names the taxonomy does know keep its order; ones
+ * it does not sort after them, alphabetically.
+ */
+export function bySubtype(
+  expenses: Expense[],
+): (SubtypeRef & { amountPaise: number })[] {
+  const totals = new Map<string, SubtypeRef & { amountPaise: number }>();
+  for (const e of expenses) {
+    const ref = { vertical: e.vertical, name: e.subtype };
+    const key = subtypeKey(ref);
+    const entry = totals.get(key);
+    if (entry) {
+      entry.amountPaise += e.amountPaise;
+    } else {
+      totals.set(key, { ...ref, amountPaise: e.amountPaise });
+    }
   }
-  return VERTICAL_ORDER.flatMap((vertical) =>
-    SUBTYPES[vertical]
-      .map((name) => ({
-        vertical,
-        name,
-        amountPaise: totals.get(subtypeKey({ vertical, name })) ?? 0,
-      }))
-      .filter((entry) => entry.amountPaise > 0),
+
+  const taxonomyIndex = (entry: SubtypeRef) => {
+    const index = SUBTYPES[entry.vertical].indexOf(entry.name);
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  };
+
+  return [...totals.values()].sort(
+    (a, b) =>
+      slotOf(a.vertical) - slotOf(b.vertical) ||
+      taxonomyIndex(a) - taxonomyIndex(b) ||
+      a.name.localeCompare(b.name),
   );
 }
-
-/**
- * Last month's total per vertical. Null while no per-vertical history exists —
- * which is a different thing from every vertical having moved by zero.
- */
-export const PREVIOUS_MONTH_BY_VERTICAL: Partial<Record<Vertical, number>> | null =
-  null;
 
 /**
  * Movement against the previous month, or null when there is nothing to
@@ -162,37 +124,40 @@ export const PREVIOUS_MONTH_BY_VERTICAL: Partial<Record<Vertical, number>> | nul
  * comparison the app has never actually made, stated as a finding. The caller
  * has to handle the null, which is the point.
  */
-export function verticalVsPrevious():
-  | { vertical: Vertical; deltaPaise: number }[]
-  | null {
-  const previous = PREVIOUS_MONTH_BY_VERTICAL;
+export function verticalVsPrevious(
+  expenses: Expense[],
+  previous: Partial<Record<Vertical, number>> | null,
+): { vertical: Vertical; deltaPaise: number }[] | null {
   if (previous === null) return null;
-  return byVertical().map(({ vertical, amountPaise }) => ({
+  return byVertical(expenses).map(({ vertical, amountPaise }) => ({
     vertical,
     deltaPaise: amountPaise - (previous[vertical] ?? 0),
   }));
 }
 
-export function byDayPaise(): number[] {
-  const days = Array.from({ length: DAYS_IN_MONTH }, () => 0);
-  for (const e of EXPENSES) {
-    if (e.day >= 1 && e.day <= DAYS_IN_MONTH) days[e.day - 1] += e.amountPaise;
+export function byDayPaise(expenses: Expense[], daysInMonth: number): number[] {
+  const days = Array.from({ length: daysInMonth }, () => 0);
+  for (const e of expenses) {
+    if (e.day >= 1 && e.day <= daysInMonth) days[e.day - 1] += e.amountPaise;
   }
   return days;
 }
 
 /** Calendar weeks, Monday start, so a partial first week stays partial. */
-export function byWeek(): { label: string; amountPaise: number; daysPaise: number[] }[] {
-  const daily = byDayPaise();
+export function byWeek(
+  expenses: Expense[],
+  period: Period,
+): { label: string; amountPaise: number; daysPaise: number[] }[] {
+  const daily = byDayPaise(expenses, period.daysInMonth);
   const weeks: { label: string; amountPaise: number; daysPaise: number[] }[] = [];
   let cursor = 0;
   let index = 0;
 
-  while (cursor < DAYS_IN_MONTH) {
-    const span = index === 0 ? 7 - FIRST_WEEKDAY : 7;
+  while (cursor < period.daysInMonth) {
+    const span = index === 0 ? 7 - period.firstWeekday : 7;
     const days = daily.slice(cursor, cursor + span);
     weeks.push({
-      label: `${cursor + 1}–${Math.min(cursor + span, DAYS_IN_MONTH)}`,
+      label: `${cursor + 1}–${Math.min(cursor + span, period.daysInMonth)}`,
       amountPaise: days.reduce((sum, value) => sum + value, 0),
       daysPaise: days,
     });
@@ -212,8 +177,11 @@ export function byWeek(): { label: string; amountPaise: number; daysPaise: numbe
  * happened. Every bar is labelled with its own amount, so a short bar is still
  * readable next to a long one.
  */
-export function topSubtypes(limit = 8): (SubtypeRef & { amountPaise: number })[] {
-  return [...bySubtype()]
+export function topSubtypes(
+  expenses: Expense[],
+  limit = 8,
+): (SubtypeRef & { amountPaise: number })[] {
+  return [...bySubtype(expenses)]
     .sort((a, b) => b.amountPaise - a.amountPaise)
     .slice(0, limit);
 }
@@ -226,31 +194,54 @@ function median(values: number[]): number {
 }
 
 /** Median spend per weekday (Mon..Sun), counting only days money moved. */
-export function weekdayMediansPaise(): number[] {
-  const daily = byDayPaise();
+export function weekdayMediansPaise(expenses: Expense[], period: Period): number[] {
+  const daily = byDayPaise(expenses, period.daysInMonth);
   const buckets: number[][] = Array.from({ length: 7 }, () => []);
 
-  for (let day = 1; day <= DAYS_IN_MONTH; day += 1) {
-    const weekday = (FIRST_WEEKDAY + day - 1) % 7;
+  for (let day = 1; day <= period.daysInMonth; day += 1) {
+    const weekday = (period.firstWeekday + day - 1) % 7;
     if (daily[day - 1] > 0) buckets[weekday].push(daily[day - 1]);
   }
 
   return buckets.map((values) => Math.round(median(values)));
 }
 
-export function stats() {
-  const daily = byDayPaise();
-  const totalPaise = totalSpendPaise();
+export type Stats = {
+  totalPaise: number;
+  count: number;
+  activeDays: number;
+  /**
+   * Null when no prior month is on file — the comparison is withheld, never
+   * reported as "no change". `deltaPct` is null when the prior month totalled
+   * zero: a percentage against nothing is not a percentage.
+   */
+  vsPrevious: { deltaPaise: number; deltaPct: number | null } | null;
+};
+
+export function stats(
+  expenses: Expense[],
+  previousMonthTotalPaise: number | null,
+  daysInMonth: number,
+): Stats {
+  const daily = byDayPaise(expenses, daysInMonth);
+  const totalPaise = totalSpendPaise(expenses);
 
   return {
     totalPaise,
-    deltaPaise: totalPaise - PREVIOUS_MONTH_TOTAL_PAISE,
-    // No suffix: a percentage has no unit, which is the point of the rule.
-    deltaPct:
-      PREVIOUS_MONTH_TOTAL_PAISE === 0
-        ? 0
-        : ((totalPaise - PREVIOUS_MONTH_TOTAL_PAISE) / PREVIOUS_MONTH_TOTAL_PAISE) * 100,
-    count: EXPENSES.length,
+    count: expenses.length,
     activeDays: daily.filter((amount) => amount > 0).length,
+    vsPrevious:
+      previousMonthTotalPaise === null
+        ? null
+        : {
+            deltaPaise: totalPaise - previousMonthTotalPaise,
+            // No suffix on the figure: a percentage has no unit.
+            deltaPct:
+              previousMonthTotalPaise === 0
+                ? null
+                : ((totalPaise - previousMonthTotalPaise) /
+                    previousMonthTotalPaise) *
+                  100,
+          },
   };
 }

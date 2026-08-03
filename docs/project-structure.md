@@ -13,7 +13,7 @@ src/
   components/
     theme-toggle.tsx   The light/dark control (client)
     dashboard/         One file per module of the board
-      dashboard.tsx    Which module sits in which tab and cell
+      dashboard.tsx    Which module sits where, and the chart-prop computing
       tab-shell.tsx    The Overview/Breakdown/Ledger switcher (client)
       tile.tsx         The bordered box a module lives in
       kpi-strip.tsx    The four figures above the tabs
@@ -34,8 +34,10 @@ src/
     session.ts         Session cookie read/write
     dal.ts             Data Access Layer — the authorisation boundary
     money.ts           Paise → rupee formatting, and rupee input parsing
+    period.ts          IST calendar arithmetic — "what month is it" lives here
     taxonomy.ts        The ten verticals and their subtypes
-    expenses.ts        The data seam every component reads — amounts in paise
+    expenses.ts        Pure selectors over a fetched month — amounts in paise
+    expenses-data.ts   getMonthData() — the one database read, server-only
     palette.ts         Chart colours as literal hex, mirroring globals.css
     theme.ts           Theme store and pre-paint bootstrap script
     fonts.ts           The two typefaces
@@ -59,19 +61,23 @@ docs/                  This documentation
 - **`src/components/`** holds everything that renders but is not a route. The
   dashboard is split one file per module rather than one long page, because the
   modules are independently readable and independently broken. `dashboard.tsx`
-  itself only decides which module sits in which tab and which grid cell.
+  decides which module sits in which tab and which grid cell, and computes the
+  plain values the client charts are handed.
 - **`src/db/`** and **`src/lib/`** are outside the router entirely, so nothing in
   them can be reached by URL. The tables in `schema.ts` create no routes.
 - **`drizzle/`** holds generated SQL and is committed, so the schema is
   reviewable as SQL and rebuildable from scratch.
 
-## The two halves that have not met yet
+## How data reaches the page
 
-`src/db/` reads real expenses out of Postgres. `src/lib/expenses.ts` is what the
-page actually renders, and it is **empty** — no query runs. The shapes match on
-purpose (integer paise, a vertical and a subtype on every row), so connecting
-them is a matter of filling that one module. Until then the board is a complete
-scaffold showing honest empty states, and no component knows the difference.
+`src/app/page.tsx` computes the current period (`currentPeriod()` in
+`src/lib/period.ts`, pinned to Asia/Kolkata) and fetches one `MonthData` via
+`getMonthData()` in `src/lib/expenses-data.ts` — a single batched query per
+render, behind `verifySession()`. That value is threaded down as props: Server
+Components call the pure selectors in `src/lib/expenses.ts` themselves, and
+the client charts receive computed plain arrays and numbers from `Dashboard`,
+never the raw rows. Nothing below the page touches the database, and with no
+rows recorded every module still shows its honest empty state.
 
 ## Imports
 
@@ -90,13 +96,14 @@ Almost everything is a Server Component. Only files that need browser state carr
 screen). `TabShell`'s panels are rendered on the server and handed to it as
 props, so the tabs cost no extra client markup.
 
-`src/db/index.ts`, `src/lib/dal.ts`, and `src/lib/session.ts` are marked
-`server-only`, so importing them from a client component fails the build instead
-of leaking a connection string or a session secret into the browser bundle.
+`src/db/index.ts`, `src/lib/dal.ts`, `src/lib/session.ts`, and
+`src/lib/expenses-data.ts` are marked `server-only`, so importing them from a
+client component fails the build instead of leaking a connection string or a
+session secret into the browser bundle.
 
-Keep client components as leaves. The charts read their totals through the
-`expenses.ts` seam rather than fetching or aggregating themselves, so the
-client bundle carries rendering and nothing else.
+Keep client components as leaves. The charts receive their totals as props
+computed by `Dashboard` on the server rather than fetching or aggregating
+themselves, so the client bundle carries rendering and nothing else.
 
 ## Configuration files
 

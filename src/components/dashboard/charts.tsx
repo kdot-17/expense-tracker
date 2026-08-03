@@ -4,22 +4,20 @@ import { useState } from "react";
 import { Bar, Line, Pie } from "react-chartjs-2";
 
 import "@/lib/chart-setup";
-import {
-  byDayPaise,
-  byVertical,
-  byWeek,
-  DAYS_IN_MONTH,
-  topSubtypes,
-  totalSpendPaise,
-} from "@/lib/expenses";
 import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import { PALETTES, type Palette } from "@/lib/palette";
-import { slotOf, subtypeLabel } from "@/lib/taxonomy";
+import { slotOf, subtypeLabel, VERTICAL_ORDER, type Vertical } from "@/lib/taxonomy";
 import { useTheme } from "@/lib/theme";
 
 import { EmptyPlot } from "./empty";
 import { BAR_FRAME, LINE_FRAME } from "./frames";
 
+/**
+ * Everything drawn here arrives as props — plain arrays and numbers computed
+ * by `Dashboard` on the server. A client component never fetches or
+ * aggregates (docs/conventions.md): these are the leaves the totals are
+ * handed to, not the place they are worked out.
+ */
 type Fonts = { bodyFont: string; displayFont: string };
 
 /**
@@ -171,10 +169,19 @@ const share = (part: number, whole: number) =>
 
 /* ------------------------------------------------------------------ pie -- */
 
-export function VerticalPie({ bodyFont, displayFont, fill = false }: Fonts & Fillable) {
+export function VerticalPie({
+  bodyFont,
+  displayFont,
+  verticals,
+  totalPaise: total,
+  fill = false,
+}: Fonts &
+  Fillable & {
+    /** All ten, in slot order, zeros kept — the legend indexes by slot. */
+    verticals: { vertical: Vertical; amountPaise: number }[];
+    totalPaise: number;
+  }) {
   const { theme, P } = useChartTheme();
-  const verticals = byVertical();
-  const total = totalSpendPaise();
 
   return (
     // `flex-wrap` with a real basis on the legend, so when the row cannot hold
@@ -338,13 +345,23 @@ export function VerticalPie({ bodyFont, displayFont, fill = false }: Fonts & Fil
 
 type Grain = "daily" | "weekly";
 
-export function SpendLine({ bodyFont, fill = false }: Fonts & Fillable) {
+export function SpendLine({
+  bodyFont,
+  daily,
+  weekly,
+  hasData,
+  fill = false,
+}: Fonts &
+  Fillable & {
+    /** Paise per day, one entry per day of the month. */
+    daily: number[];
+    weekly: { label: string; amountPaise: number }[];
+    /** Computed server-side — the empty case is decided where the data is. */
+    hasData: boolean;
+  }) {
   const { theme, P } = useChartTheme();
   const [grain, setGrain] = useState<Grain>("daily");
-  const daily = byDayPaise();
-  const weekly = byWeek();
   const isDaily = grain === "daily";
-  const hasData = totalSpendPaise() > 0;
 
   const labels = isDaily
     ? daily.map((_, i) => String(i + 1))
@@ -356,7 +373,7 @@ export function SpendLine({ bodyFont, fill = false }: Fonts & Fillable) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className={MICRO}>
           {isDaily
-            ? `${DAYS_IN_MONTH} days`
+            ? `${daily.length} days`
             : `${weekly.length} calendar weeks · Mon start`}
         </p>
         <div role="group" aria-label="Granularity" className="flex">
@@ -470,9 +487,17 @@ export function SpendLine({ bodyFont, fill = false }: Fonts & Fillable) {
 
 /* ------------------------------------------------------------------ bar -- */
 
-export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fillable) {
+export function SubtypeBars({
+  bodyFont,
+  displayFont,
+  subtypes,
+  fill = false,
+}: Fonts &
+  Fillable & {
+    /** The month's biggest subtypes, largest first, already limited. */
+    subtypes: { vertical: Vertical; name: string; amountPaise: number }[];
+  }) {
   const { theme, P } = useChartTheme();
-  const subtypes = topSubtypes(8);
   const slots = subtypes.map((entry) => slotOf(entry.vertical));
   // Which verticals are actually on this axis — a legend row for one that is
   // not drawn would document an encoding the reader cannot see.
@@ -601,7 +626,9 @@ export function SubtypeBars({ bodyFont, displayFont, fill = false }: Fonts & Fil
               className="border-rule size-3.5 border-2"
               style={{ background: `var(--slot-${slot})` }}
             />
-            <span className={MICRO}>{byVertical()[slot].vertical}</span>
+            {/* Slot → name via the frozen order, not a data lookup: the legend
+                names an identity, and identities do not depend on the month. */}
+            <span className={MICRO}>{VERTICAL_ORDER[slot]}</span>
           </li>
         ))}
       </ul>

@@ -1,5 +1,6 @@
-import { byVertical, verticalVsPrevious } from "@/lib/expenses";
+import { byVertical, verticalVsPrevious, type Expense } from "@/lib/expenses";
 import { formatPaise } from "@/lib/money";
+import type { Vertical } from "@/lib/taxonomy";
 
 import { EmptyPlot } from "./empty";
 
@@ -8,8 +9,14 @@ import { EmptyPlot } from "./empty";
  * scaled to the largest absolute move in either direction. Direction and a
  * signed number both carry the sign, so the colour is only ever identity.
  */
-export function VersusPrevious() {
-  const deltas = verticalVsPrevious();
+export function VersusPrevious({
+  expenses,
+  previousMonthByVertical,
+}: {
+  expenses: Expense[];
+  previousMonthByVertical: Partial<Record<Vertical, number>> | null;
+}) {
+  const deltas = verticalVsPrevious(expenses, previousMonthByVertical);
   // Null means there is no per-vertical history, which is not the same as ten
   // verticals that each happened to move by zero. Drawing the second when we
   // have the first is the bug this guard exists for.
@@ -17,7 +24,7 @@ export function VersusPrevious() {
     return <EmptyPlot label="No prior month on file" />;
   }
 
-  const verticals = byVertical();
+  const verticals = byVertical(expenses);
   // Floored at 1: a real month where every vertical moved by exactly zero would
   // otherwise divide by zero and size every bar NaN.
   const max = Math.max(1, ...deltas.map((entry) => Math.abs(entry.deltaPaise)));

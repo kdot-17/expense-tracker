@@ -9,6 +9,10 @@
  *
  * The KPI strip sits outside the tabs on purpose: the four figures you opened
  * the app for should not depend on which view you happen to be standing in.
+ *
+ * This is also where the client boundary is drawn: the charts are client
+ * components, so everything they show is computed here on the server and
+ * handed over as plain arrays and numbers. A chart never aggregates.
  */
 
 import { CalendarBlock } from "@/components/dashboard/calendar";
@@ -19,7 +23,16 @@ import { TabShell } from "@/components/dashboard/tab-shell";
 import { Tile } from "@/components/dashboard/tile";
 import { Treemap } from "@/components/dashboard/treemap";
 import { VersusPrevious } from "@/components/dashboard/versus-previous";
+import {
+  byDayPaise,
+  byVertical,
+  byWeek,
+  topSubtypes,
+  totalSpendPaise,
+  type MonthData,
+} from "@/lib/expenses";
 import { body, display } from "@/lib/fonts";
+import { todayInIST, type Period } from "@/lib/period";
 
 /**
  * Every panel is the same 12-column grid. `minmax(0, 1fr)` rows — which is what
@@ -30,15 +43,39 @@ import { body, display } from "@/lib/fonts";
 const PANEL = "grid min-h-0 flex-1 grid-cols-1 gap-2.5 lg:grid-cols-12 lg:gap-3";
 const TWO_ROWS = "lg:grid-rows-2";
 
-export function Dashboard() {
+export function Dashboard({ period, data }: { period: Period; data: MonthData }) {
   // Chart.js paints to a canvas, so it needs the resolved family name — a CSS
   // variable means nothing to it. next/font gives us that at build time.
   const displayFont = display.style.fontFamily;
   const bodyFont = body.style.fontFamily;
 
+  const { expenses } = data;
+  const totalPaise = totalSpendPaise(expenses);
+  const verticals = byVertical(expenses);
+  const daily = byDayPaise(expenses, period.daysInMonth);
+  const weekly = byWeek(expenses, period).map(({ label, amountPaise }) => ({
+    label,
+    amountPaise,
+  }));
+  const subtypes = topSubtypes(expenses, 8);
+
+  // Which day it is, when the period being shown contains it — the calendar
+  // must not strike out days that have not happened yet. Null once the period
+  // is over: every day of a finished month is a day we can speak for.
+  const today = todayInIST();
+  const todayDay =
+    today >= period.firstDay && today <= period.lastDay
+      ? Number(today.slice(8, 10))
+      : null;
+
   return (
     <main className="mx-auto flex w-full min-h-0 max-w-[1800px] flex-1 flex-col gap-2.5 p-2.5 lg:gap-3 lg:p-3">
-      <KpiStrip />
+      <KpiStrip
+        period={period}
+        expenses={expenses}
+        previousMonthTotalPaise={data.previousMonthTotalPaise}
+        todayDay={todayDay}
+      />
 
       <TabShell
         tabs={[
@@ -56,9 +93,13 @@ export function Dashboard() {
                       percentage-positioned, so the frame's shape decides how
                       squarify splits it, and a 1.4 frame on a phone would be a
                       row of slivers. */}
-                  <Treemap ratio={1.4} fill className="hidden lg:flex" />
-                  <Treemap ratio={1.85} className="hidden md:block lg:hidden" />
-                  <Treemap ratio={0.78} className="md:hidden" compact />
+                  <Treemap expenses={expenses} ratio={1.4} fill className="hidden lg:flex" />
+                  <Treemap
+                    expenses={expenses}
+                    ratio={1.85}
+                    className="hidden md:block lg:hidden"
+                  />
+                  <Treemap expenses={expenses} ratio={0.78} className="md:hidden" compact />
                 </Tile>
 
                 <Tile
@@ -66,7 +107,13 @@ export function Dashboard() {
                   title="The verticals, fixed order"
                   className="lg:col-span-4"
                 >
-                  <VerticalPie bodyFont={bodyFont} displayFont={displayFont} fill />
+                  <VerticalPie
+                    bodyFont={bodyFont}
+                    displayFont={displayFont}
+                    verticals={verticals}
+                    totalPaise={totalPaise}
+                    fill
+                  />
                 </Tile>
 
                 <Tile index="03" title="Against last month" className="lg:col-span-4">
@@ -81,7 +128,10 @@ export function Dashboard() {
                     role="group"
                     aria-label="Movement against last month, by vertical — scrolls"
                   >
-                    <VersusPrevious />
+                    <VersusPrevious
+                      expenses={expenses}
+                      previousMonthByVertical={data.previousMonthByVertical}
+                    />
                   </div>
                 </Tile>
               </div>
@@ -93,7 +143,14 @@ export function Dashboard() {
             panel: (
               <div className={`${PANEL} ${TWO_ROWS}`}>
                 <Tile index="04" title="Spend over time" className="lg:col-span-8">
-                  <SpendLine bodyFont={bodyFont} displayFont={displayFont} fill />
+                  <SpendLine
+                    bodyFont={bodyFont}
+                    displayFont={displayFont}
+                    daily={daily}
+                    weekly={weekly}
+                    hasData={totalPaise > 0}
+                    fill
+                  />
                 </Tile>
 
                 <Tile
@@ -113,12 +170,17 @@ export function Dashboard() {
                     role="group"
                     aria-label="The month as a grid, with weekday medians — scrolls"
                   >
-                    <CalendarBlock />
+                    <CalendarBlock period={period} expenses={expenses} todayDay={todayDay} />
                   </div>
                 </Tile>
 
                 <Tile index="06" title="Where it actually went" className="lg:col-span-8">
-                  <SubtypeBars bodyFont={bodyFont} displayFont={displayFont} fill />
+                  <SubtypeBars
+                    bodyFont={bodyFont}
+                    displayFont={displayFont}
+                    subtypes={subtypes}
+                    fill
+                  />
                 </Tile>
               </div>
             ),
@@ -129,7 +191,7 @@ export function Dashboard() {
             panel: (
               <div className={PANEL}>
                 <Tile index="07" title="The ledger" className="lg:col-span-12">
-                  <Ledger fill />
+                  <Ledger expenses={expenses} fill />
                 </Tile>
               </div>
             ),

@@ -9,15 +9,9 @@
  * month that does not exist is withheld rather than reported as "no change".
  */
 
-import {
-  byVertical,
-  DAYS_IN_MONTH,
-  MONTH_LABEL,
-  PERIOD_IS_CLOSED,
-  PREVIOUS_MONTH_TOTAL_PAISE,
-  stats,
-} from "@/lib/expenses";
+import { byVertical, stats, type Expense } from "@/lib/expenses";
 import { formatPaise } from "@/lib/money";
+import type { Period } from "@/lib/period";
 import { slotOf } from "@/lib/taxonomy";
 
 const MICRO = "text-micro font-semibold uppercase tracking-[0.2em]";
@@ -54,20 +48,38 @@ function Stat({
           {value}
         </span>
       </p>
-      <p className="text-ink-2 text-tick mt-1 truncate">{detail ?? " "}</p>
+      <p className="text-ink-2 text-tick mt-1 truncate">{detail ?? " "}</p>
     </div>
   );
 }
 
-export function KpiStrip() {
-  const s = stats();
+export function KpiStrip({
+  period,
+  expenses,
+  previousMonthTotalPaise,
+  todayDay,
+}: {
+  period: Period;
+  expenses: Expense[];
+  previousMonthTotalPaise: number | null;
+  /** Day of the month it is right now, or null once the period is over. */
+  todayDay: number | null;
+}) {
+  const s = stats(expenses, previousMonthTotalPaise, period.daysInMonth);
   const hasData = s.count > 0;
-  const hasPrevious = PREVIOUS_MONTH_TOTAL_PAISE > 0;
+  // No prior month is not "no change" — it is nothing to say. And a delta for
+  // a month with nothing in it yet would be a comparison of nothing.
+  const compare = hasData ? s.vsPrevious : null;
+
+  // Days that have actually happened. A month in progress has not had its
+  // remaining days, and counting them as "days with nothing" would assert the
+  // future spent nothing — the exact class of claim this strip must not make.
+  const elapsedDays = todayDay ?? period.daysInMonth;
 
   // The single largest vertical, which is the question a glance is usually
   // asking. Ties resolve to the earlier slot, which is stable across months.
   const top = hasData
-    ? byVertical().reduce((best, entry) =>
+    ? byVertical(expenses).reduce((best, entry) =>
         entry.amountPaise > best.amountPaise ? entry : best,
       )
     : null;
@@ -75,21 +87,29 @@ export function KpiStrip() {
   return (
     <div className="grid shrink-0 grid-cols-2 gap-2.5 lg:grid-cols-4">
       <Stat
-        label={`${MONTH_LABEL} · ${PERIOD_IS_CLOSED ? "closed" : "in progress"}`}
+        label={`${period.label} · ${period.isClosed ? "closed" : "in progress"}`}
         value={hasData ? formatPaise(s.totalPaise) : DASH}
         detail={hasData ? `${s.count} expenses` : "Nothing recorded yet"}
       />
       <Stat
         label="On last month"
         value={
-          // No prior month is not "no change" — it is nothing to say.
-          hasPrevious && hasData
-            ? `${s.deltaPaise > 0 ? "+" : ""}${s.deltaPct.toFixed(1)}%`
+          compare
+            ? compare.deltaPct === null
+              ? // A prior month on file that totalled zero: a percentage
+                // against nothing is not a percentage, so the rupee movement
+                // is the figure.
+                `${compare.deltaPaise > 0 ? "+" : ""}${formatPaise(compare.deltaPaise)}`
+              : `${compare.deltaPaise > 0 ? "+" : ""}${compare.deltaPct.toFixed(1)}%`
             : DASH
         }
         detail={
-          hasPrevious && hasData
-            ? `${s.deltaPaise > 0 ? "+" : ""}${formatPaise(s.deltaPaise)}`
+          compare
+            ? compare.deltaPct === null
+              ? // Derived, not typed: the branch means the prior total was
+                // zero, but the figure still comes from the data.
+                `Last month: ${formatPaise(previousMonthTotalPaise ?? 0)}`
+              : `${compare.deltaPaise > 0 ? "+" : ""}${formatPaise(compare.deltaPaise)}`
             : "No prior month on file"
         }
       />
@@ -101,8 +121,12 @@ export function KpiStrip() {
       />
       <Stat
         label="Days active"
-        value={hasData ? `${s.activeDays}/${DAYS_IN_MONTH}` : DASH}
-        detail={hasData ? `${DAYS_IN_MONTH - s.activeDays} days with nothing` : undefined}
+        value={hasData ? `${s.activeDays}/${elapsedDays}` : DASH}
+        detail={
+          hasData
+            ? `${elapsedDays - s.activeDays} days with nothing${period.isClosed ? "" : " so far"}`
+            : undefined
+        }
       />
     </div>
   );

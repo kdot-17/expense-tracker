@@ -39,11 +39,14 @@ in as props, so switching tabs ships no new markup and no data to the browser.
 
 ### Dashboard
 
-Decides which module sits in which tab and which grid cell, and nothing else.
-The seven modules are split by the question they answer — Overview, Breakdown,
-Ledger — rather than stacked in reading order. Layout rules that a change here
-can break, including why `flex-none` sits beside `h-dvh`, are in
-[`design-system.md` §7](design-system.md).
+Decides which module sits in which tab and which grid cell, and computes the
+plain values the client charts are handed — the client boundary is drawn here.
+It receives the period and the fetched `MonthData` from the page, runs the
+pure selectors from `@/lib/expenses`, and passes arrays and numbers down; a
+chart never aggregates. The seven modules are split by the question they
+answer — Overview, Breakdown, Ledger — rather than stacked in reading order.
+Layout rules that a change here can break, including why `flex-none` sits
+beside `h-dvh`, are in [`design-system.md` §7](design-system.md).
 
 ### TabShell
 
@@ -84,8 +87,9 @@ is a plain `<form>` posting to the `logout` server action: it needs no
 `"use client"` and works if the client bundle never loads.
 
 The band's right-hand status reads `<month> · closed` or `<month> · in progress`
-from `PERIOD_IS_CLOSED`, never from a literal. It said "closed" unconditionally
-once, which claimed a month was final on its third day.
+from the `isClosed` prop the page derives, never from a literal. It said
+"closed" unconditionally once, which claimed a month was final on its third
+day.
 
 ### Fill mode
 

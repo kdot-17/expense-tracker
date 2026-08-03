@@ -1,4 +1,4 @@
-import { bySubtype, byVertical, totalSpendPaise } from "@/lib/expenses";
+import { bySubtype, byVertical, totalSpendPaise, type Expense } from "@/lib/expenses";
 import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import { slotOf, subtypeKey, type SubtypeRef } from "@/lib/taxonomy";
 
@@ -200,11 +200,13 @@ function Cell({
  * degenerate rectangle. The pie keeps them; it indexes by slot.
  */
 export function Treemap({
+  expenses,
   ratio,
   className,
   compact = false,
   fill = false,
 }: {
+  expenses: Expense[];
   ratio: number;
   className?: string;
   /** The narrow layout: poster-scale type in a cell a couple of hundred pixels
@@ -215,9 +217,9 @@ export function Treemap({
       splits the frame, it just stops dictating how tall the frame is. */
   fill?: boolean;
 }) {
-  const total = totalSpendPaise();
-  const verticals = byVertical().filter((entry) => entry.amountPaise > 0);
-  const subtypes = bySubtype();
+  const total = totalSpendPaise(expenses);
+  const verticals = byVertical(expenses).filter((entry) => entry.amountPaise > 0);
+  const subtypes = bySubtype(expenses);
   const frame: Rect = { x: 0, y: 0, w: ratio, h: 1 };
   const sizing = fill ? undefined : { aspectRatio: String(ratio) };
 
