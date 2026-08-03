@@ -51,13 +51,20 @@ const MICRO = "text-micro font-semibold uppercase tracking-[0.18em] text-muted";
 
 /**
  * Plot frames. Chart.js needs a parent with a definite height (design-system
- * §5.4); an aspect ratio gives it one that is derived from the width instead of
- * frozen in pixels, so a plot reflows with its column rather than at a
- * breakpoint. The ratios match the proportions the fixed heights produced at
- * each band, so the shapes are unchanged — they are just no longer fixed.
+ * §5.4); an aspect ratio gives it one derived from the width instead of frozen
+ * in pixels, so a plot reflows with its column rather than at a breakpoint.
+ *
+ * The `min-h` floors are not a hedge. At `lg` the 12-column grid takes over and
+ * these columns get *narrower* than they were when stacked — the line plot goes
+ * from a 720px column at 768px wide to a 537px one at 1024px — so a pure ratio
+ * would squash a time series to 244px exactly where there is most room on the
+ * page. The floors are the heights these plots had before, in rem so they track
+ * the type they have to stay legible against; the ratio takes over above them.
  */
-const LINE_FRAME = "aspect-[6/5] sm:aspect-[16/9] lg:aspect-[11/5]";
-const BAR_FRAME = "aspect-square sm:aspect-[3/2] lg:aspect-[4/3]";
+const LINE_FRAME =
+  "aspect-[6/5] sm:aspect-[16/9] lg:aspect-[11/5] min-h-[17.5rem] sm:min-h-[21.25rem]";
+const BAR_FRAME =
+  "aspect-square sm:aspect-[3/2] lg:aspect-[4/3] min-h-[21.25rem] sm:min-h-[25rem]";
 
 /**
  * A canvas has no CSS, so the responsive rules have to be arithmetic here.

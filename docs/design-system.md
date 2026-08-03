@@ -299,10 +299,17 @@ A size is written in the unit that describes what it actually depends on:
 That last row is the only place `px` belongs. A 2px rule is 2px because it is a
 rule; making it `rem` would give it a fractional width and a soft edge.
 
-**Plot frames carry an aspect ratio, never a height.** Chart.js needs a parent
-with a definite height (§5.4), and a ratio gives it one derived from the width,
-so a plot reflows continuously with its column instead of stepping at a
-breakpoint. `LINE_FRAME` and `BAR_FRAME` in `charts.tsx` are the two shapes.
+**Plot frames carry an aspect ratio and a `min-h` floor, never a fixed height.**
+Chart.js needs a parent with a definite height (§5.4), and a ratio gives it one
+derived from the width, so a plot reflows continuously with its column instead
+of stepping at a breakpoint. `LINE_FRAME` and `BAR_FRAME` in `charts.tsx` are
+the two shapes.
+
+The floor exists because **these columns get narrower at `lg`, not wider**: the
+12-column grid takes over, so the line plot's column falls from 720px at a
+768px viewport to 537px at 1024px. A pure ratio would squash a time series to
+244px exactly where the page has most room. The floors are the heights these
+plots had before this became fluid, in rem; the ratio takes over above them.
 
 **A canvas has no CSS**, so `charts.tsx` does the same arithmetic by hand:
 tick and tooltip sizes come from `remPx()`, and the bar annotation reserves a

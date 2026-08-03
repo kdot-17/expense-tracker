@@ -9,7 +9,7 @@ export function EmptyPlot({
   // the space its chart will. Callers pass the shape of the plot they stand in
   // for — an aspect ratio, never a fixed height, so the placeholder reflows
   // with its column like the canvas does.
-  className = "aspect-[6/5] sm:aspect-[16/9] lg:aspect-[11/5]",
+  className = "aspect-[6/5] sm:aspect-[16/9] lg:aspect-[11/5] min-h-[17.5rem] sm:min-h-[21.25rem]",
 }: {
   label?: string;
   className?: string;
