@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent scratch — worktrees here contain a full stale copy of the app, which
+# Tailwind v4's automatic source detection would otherwise scan for classes
+.claude/
+.agents/
+skills-lock.json

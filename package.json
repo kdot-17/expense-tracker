@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "palette": "node scripts/palette-check.mjs --all",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run palette && npm run build"
   },
   "dependencies": {
     "chart.js": "^4.5.1",

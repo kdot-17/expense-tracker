@@ -1,26 +1,215 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   DESIGN TOKENS — Brutalist
+   ----------------------------------------------------------------------------
+   Every colour in the product is declared here once, as a literal hex, in two
+   parallel sets. `src/lib/palette.ts` mirrors these exact values for the canvas
+   layer, because Chart.js v4 cannot parse a CSS variable. `npm run palette`
+   validates both sets and fails if the two files disagree, so they cannot
+   drift apart silently.
+
+   Theme resolution, in precedence order:
+     1. `data-theme` on <html>       — an explicit choice, set by the toggle
+     2. `prefers-color-scheme`       — the OS default, when no choice is stored
+     3. light                        — the final fallback
+
+   Markup reads these variables, so a theme switch re-colours server-rendered
+   HTML with no JavaScript and no re-render. Only <canvas> needs the JS palette.
+   See docs/design-system.md.
+   ========================================================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* surfaces and ink */
+  --page: #f5f3ed;
+  --card: #ffffff;
+  --ink: #111111;
+  --ink-2: #3d3d3d;
+  --muted: #6e6e6e;
+  --grid: #ddd9cf;
+  /* The heavy brutalist rule IS the ink colour, not a grey. */
+  --rule: #111111;
+  /* The inverted bands — masthead and footer. They stay dark in both themes;
+     flipping them to white in dark mode would put the brightest object on the
+     page in the reader's eyeline. */
+  --bar: #111111;
+  --on-bar: #f5f3ed;
+
+  /* categorical slots — frozen order, validated. Never re-order. */
+  --slot-0: #e93a51; /* Rent & home        */
+  --slot-1: #a05001; /* Food & dining      */
+  --slot-2: #ad8604; /* Groceries          */
+  --slot-3: #106b07; /* Transport          */
+  --slot-4: #2145ca; /* Bills & recharge   */
+  --slot-5: #9760f2; /* Investments & SIP  */
+  --slot-6: #6e6e6e; /* Other — zero chroma on purpose */
+
+  /* text that clears 4.5:1 on the matching slot block. Measured, not guessed. */
+  --on-0: #111111;
+  --on-1: #ffffff;
+  --on-2: #111111;
+  --on-3: #ffffff;
+  --on-4: #ffffff;
+  --on-5: #111111;
+  --on-6: #ffffff;
+
+  /* calendar ramp — one hue, five steps */
+  --ramp-0: #d0e6ff;
+  --ramp-1: #a3c9ff;
+  --ramp-2: #70a6f5;
+  --ramp-3: #4c80cd;
+  --ramp-4: #2759a2;
+  --ramp-on-0: #111111;
+  --ramp-on-1: #111111;
+  --ramp-on-2: #111111;
+  --ramp-on-3: #111111;
+  --ramp-on-4: #ffffff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* An explicit dark choice. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --page: #000000;
+  --card: #0f0f0f;
+  --ink: #ffffff;
+  --ink-2: #c9c9c9;
+  --muted: #8a8a8a;
+  --grid: #262626;
+  --rule: #ffffff;
+  --bar: #171717;
+  --on-bar: #ffffff;
+
+  --slot-0: #e54154;
+  --slot-1: #ed9e2f;
+  --slot-2: #a48118;
+  --slot-3: #169f65;
+  --slot-4: #2981fb;
+  --slot-5: #cba1fa;
+  --slot-6: #9a9a9a;
+
+  --on-0: #111111;
+  --on-1: #111111;
+  --on-2: #111111;
+  --on-3: #111111;
+  --on-4: #111111;
+  --on-5: #111111;
+  --on-6: #111111;
+
+  --ramp-0: #1a2e4c;
+  --ramp-1: #284d83;
+  --ramp-2: #366dbe;
+  --ramp-3: #5992e7;
+  --ramp-4: #84bfff;
+  --ramp-on-0: #ffffff;
+  --ramp-on-1: #ffffff;
+  --ramp-on-2: #ffffff;
+  --ramp-on-3: #111111;
+  --ramp-on-4: #111111;
 }
 
+/* The OS preference, but only while the reader has not chosen for themselves.
+   `:not([data-theme="light"])` is what makes an explicit light choice stick on
+   a dark-mode machine. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --page: #000000;
+    --card: #0f0f0f;
+    --ink: #ffffff;
+    --ink-2: #c9c9c9;
+    --muted: #8a8a8a;
+    --grid: #262626;
+    --rule: #ffffff;
+    --bar: #171717;
+    --on-bar: #ffffff;
+
+    --slot-0: #e54154;
+    --slot-1: #ed9e2f;
+    --slot-2: #a48118;
+    --slot-3: #169f65;
+    --slot-4: #2981fb;
+    --slot-5: #cba1fa;
+    --slot-6: #9a9a9a;
+
+    --on-0: #111111;
+    --on-1: #111111;
+    --on-2: #111111;
+    --on-3: #111111;
+    --on-4: #111111;
+    --on-5: #111111;
+    --on-6: #111111;
+
+    --ramp-0: #1a2e4c;
+    --ramp-1: #284d83;
+    --ramp-2: #366dbe;
+    --ramp-3: #5992e7;
+    --ramp-4: #84bfff;
+    --ramp-on-0: #ffffff;
+    --ramp-on-1: #ffffff;
+    --ramp-on-2: #ffffff;
+    --ramp-on-3: #111111;
+    --ramp-on-4: #111111;
   }
 }
 
+/* ---------------------------------------------------------------- Tailwind --
+   `@theme inline` exposes the tokens as utilities: bg-page, text-ink,
+   border-rule, bg-slot-0, and so on. `inline` matters — it keeps the var()
+   reference in the generated CSS instead of resolving it at build time, which
+   is what lets one class follow the theme. */
+@theme inline {
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-grid: var(--grid);
+  --color-rule: var(--rule);
+  --color-bar: var(--bar);
+  --color-on-bar: var(--on-bar);
+
+  --color-slot-0: var(--slot-0);
+  --color-slot-1: var(--slot-1);
+  --color-slot-2: var(--slot-2);
+  --color-slot-3: var(--slot-3);
+  --color-slot-4: var(--slot-4);
+  --color-slot-5: var(--slot-5);
+  --color-slot-6: var(--slot-6);
+
+  --font-display: var(--font-brut-display), Impact, "Arial Narrow", sans-serif;
+  --font-sans: var(--font-brut-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* -------------------------------------------------------------------- base */
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-brut-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Brutalist: nothing is rounded and nothing is soft. Stated once, here, rather
+   than as a rounded-none on every element. */
+:where(button, input, select, textarea) {
+  border-radius: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--slot-4);
+  outline-offset: 2px;
+}
+
+/* The theme swap should not animate — a 200ms cross-fade of every surface on
+   the page reads as a glitch, not a transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

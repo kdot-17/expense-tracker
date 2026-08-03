@@ -16,10 +16,14 @@ export default async function LoginPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">Expense Tracker</h1>
-        <p className="mt-1 mb-8 text-sm text-black/60 dark:text-white/60">
-          Sign in to continue.
+      <div className="border-rule bg-card w-full max-w-sm border-2 p-6 sm:p-8">
+        <h1 className="font-display text-[clamp(2rem,7vw,3rem)] leading-[0.85] uppercase">
+          Expense
+          <br />
+          Tracker
+        </h1>
+        <p className="text-muted mt-3 mb-8 text-[10px] font-semibold tracking-[0.2em] uppercase">
+          Sign in to continue
         </p>
         <LoginForm />
       </div>
