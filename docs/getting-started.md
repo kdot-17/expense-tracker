@@ -45,18 +45,18 @@ with the `AUTH_EMAIL` and `AUTH_PASSWORD` you configured.
 | `npm run start` | Serve a production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run palette` | Validates both colour palettes against the six rules |
+| `npm run verify` | All four gates: typecheck, lint, palette, build |
 | `npm run db:generate` | Write a migration from schema changes |
 | `npm run db:migrate` | Apply pending migrations |
 | `npm run db:studio` | Browse the database |
 
 ## Before you call something done
 
-All three of these must pass:
+All four gates must pass:
 
 ```bash
-npm run typecheck
-npm run lint
-npm run build
+npm run verify     # typecheck + lint + palette + build
 ```
 
 `next build` runs TypeScript too, but `tsc --noEmit` also covers files the build

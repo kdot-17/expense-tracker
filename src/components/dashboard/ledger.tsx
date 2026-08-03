@@ -1,5 +1,6 @@
+import { formatPaise } from "@/lib/money";
 import { categorySlot } from "@/lib/palette";
-import { CATEGORY_TO_GROUP, formatINR, TRANSACTIONS } from "@/lib/transactions";
+import { CATEGORY_TO_GROUP, TRANSACTIONS } from "@/lib/transactions";
 
 export function Ledger() {
   return (
@@ -85,7 +86,7 @@ export function Ledger() {
                     className="px-2 py-1.5 text-right text-[15px] tabular-nums sm:px-3"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
-                    {formatINR(txn.amount)}
+                    {formatPaise(txn.amountPaise)}
                   </td>
                 </tr>
               );

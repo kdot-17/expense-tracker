@@ -12,6 +12,9 @@ src/
       login-form.tsx   The sign-in form (client component)
       actions.ts       login and logout server actions
     globals.css        Tailwind import and theme tokens
+  components/
+    dashboard/         The dashboard, one file per section
+    theme-toggle.tsx   The light/dark control
   db/
     schema.ts          Table definitions
     index.ts           getDb() — the lazy database client
@@ -19,9 +22,15 @@ src/
     auth.ts            Credential checks and session token signing
     session.ts         Session cookie read/write
     dal.ts             Data Access Layer — the authorisation boundary
-    money.ts           Rupee parsing and formatting
+    money.ts           Paise → rupee formatting, and rupee input parsing
+    transactions.ts    Data layer and selectors — all amounts in paise
+    palette.ts         Chart colours as literal hex, mirroring globals.css
+    theme.ts           Theme store and bootstrap script
+    fonts.ts           The two typefaces
+    chart-setup.ts     Chart.js registration
   proxy.ts             Runs before pages; optimistic auth gate
 drizzle/               Generated migration SQL, committed
+scripts/               palette-check.mjs — the palette validator
 docs/                  This documentation
 ```
 

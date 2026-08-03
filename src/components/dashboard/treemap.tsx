@@ -2,11 +2,11 @@ import {
   byCategory,
   byGroup,
   CATEGORY_TO_GROUP,
-  formatINR,
-  totalSpend,
+  totalSpendPaise,
   type Category,
 } from "@/lib/transactions";
 import { EmptyPlot } from "./empty";
+import { formatPaise } from "@/lib/money";
 import { slotOf } from "@/lib/palette";
 import { squarify, type Rect } from "./squarify";
 
@@ -60,13 +60,13 @@ function pct(value: number, whole: number): string {
 
 function Cell({
   category,
-  amount,
+  amountPaise,
   share,
   rect,
   frame,
 }: {
   category: Category;
-  amount: number;
+  amountPaise: number;
   share: number;
   rect: Rect;
   frame: Rect;
@@ -90,7 +90,7 @@ function Cell({
         outline: "2px solid var(--rule)",
         outlineOffset: "-1px",
       }}
-      title={`${category} — ${formatINR(amount)}, ${share.toFixed(1)}% of the month`}
+      title={`${category} — ${formatPaise(amountPaise)}, ${share.toFixed(1)}% of the month`}
     >
       <span className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] md:text-[0.65rem]">
         {share.toFixed(1)}%
@@ -107,7 +107,7 @@ function Cell({
           className={`leading-[0.85] tracking-[-0.04em] tabular-nums ${AMOUNT_SIZE[tier]}`}
           style={{ fontFamily: "var(--font-display)" }}
         >
-          {formatINR(amount)}
+          {formatPaise(amountPaise)}
         </span>
       </span>
     </div>
@@ -121,7 +121,7 @@ function Cell({
  * one group stops and the next begins.
  */
 export function Treemap({ ratio, className }: { ratio: number; className?: string }) {
-  const total = totalSpend();
+  const total = totalSpendPaise();
   const groups = byGroup();
   const categories = byCategory();
   const frame: Rect = { x: 0, y: 0, w: ratio, h: 1 };
@@ -137,7 +137,7 @@ export function Treemap({ ratio, className }: { ratio: number; className?: strin
   }
 
   const placedGroups = squarify(
-    groups.map((entry) => ({ item: entry.group, value: entry.amount })),
+    groups.map((entry) => ({ item: entry.group, value: entry.amountPaise })),
     frame,
   );
 
@@ -151,7 +151,7 @@ export function Treemap({ ratio, className }: { ratio: number; className?: strin
           (entry) => CATEGORY_TO_GROUP[entry.category] === group,
         );
         const inner = squarify(
-          members.map((entry) => ({ item: entry, value: entry.amount })),
+          members.map((entry) => ({ item: entry, value: entry.amountPaise })),
           { x: 0, y: 0, w: rect.w, h: rect.h },
         );
 
@@ -170,8 +170,8 @@ export function Treemap({ ratio, className }: { ratio: number; className?: strin
               <Cell
                 key={item.category}
                 category={item.category}
-                amount={item.amount}
-                share={(item.amount / total) * 100}
+                amountPaise={item.amountPaise}
+                share={(item.amountPaise / total) * 100}
                 rect={cell}
                 frame={{ x: 0, y: 0, w: rect.w, h: rect.h }}
               />

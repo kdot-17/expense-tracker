@@ -55,8 +55,11 @@ These are the rules that break something real when violated.
 4. **Every coloured series is also directly labelled.** Colour is never the only
    channel carrying a value.
 5. **Bars and areas start at zero.** No broken axes, no dual axes, no log scale.
-6. **Money is always `formatINR()`** from `@/lib/transactions` — en-IN lakh
-   grouping and a real ₹. Never `toLocaleString()` inline, never `$`.
+6. **Money is always `formatPaise()`** from `@/lib/money` — en-IN lakh grouping
+   and a real ₹. Never `toLocaleString()` inline, never `$`. Every amount the
+   page handles is an integer number of **paise**; rupees only ever exist as the
+   string a formatter returns. `formatPaiseCompact()` is for axis ticks and
+   calendar cells, never a headline. See [money.md](money.md).
 7. **Never hand Chart.js a CSS variable.** See §5.
 
 ---
@@ -126,6 +129,10 @@ light→dark on the light sheet, dark→light on the dark one, so "more" is alwa
 "further from the page". Cuts are fixed round numbers (`rampStep`), not
 quantiles, because a reader can hold five round numbers. `₹0` days are not
 step 0 — they are struck out with a hatch, so absence reads as absence.
+
+The cuts are in **paise**, so ₹1k is `1_00_000`. `RAMP_LABELS` prints the same
+five bands in rupees for the key, and the two lists have to be edited together —
+a key that disagrees with the shading is worse than no key.
 
 ### The six checks
 
@@ -247,6 +254,7 @@ src/components/dashboard/        the page itself, one file per section
 src/components/theme-toggle.tsx  the light/dark control
 src/lib/chart-setup.ts           Chart.js registration — see §5
 src/lib/fonts.ts                 the two faces — see §4
+src/lib/money.ts                 paise → rupee formatting — see §2 rule 6
 src/lib/palette.ts               the canvas mirror of the tokens
 src/lib/theme.ts                 theme store + bootstrap script
 src/lib/transactions.ts          data layer — currently empty, no store wired
@@ -257,6 +265,10 @@ scripts/palette-check.mjs        the validator
 selector returns the zero case and the page renders its full scaffold with empty
 states. Wiring a real source means changing that module and nothing else — keep
 the exported signatures stable, because the whole page reads through them.
+
+It holds paise, matching the `expenses.amount_paise` column it will eventually
+read from, so wiring the database up is a change of source and not a change of
+unit. It does no formatting at all: that belongs to `src/lib/money.ts`.
 
 ---
 
