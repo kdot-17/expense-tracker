@@ -1,29 +1,32 @@
-import {
-  byDayPaise,
-  DAYS_IN_MONTH,
-  FIRST_WEEKDAY,
-  weekdayMediansPaise,
-  WEEKDAYS_LONG,
-  WEEKDAYS_SHORT,
-} from "@/lib/expenses";
+import { byDayPaise, weekdayMediansPaise, type Expense } from "@/lib/expenses";
 import { formatPaise, formatPaiseCompact } from "@/lib/money";
 import { RAMP_LABELS, rampStep } from "@/lib/palette";
+import { WEEKDAYS_LONG, WEEKDAYS_SHORT, type Period } from "@/lib/period";
 
 /** Card cell, hard ink slashes. A blank day should look struck out, not just
     pale — absence encoded as absence, in both themes. */
 const QUIET_FILL =
   "repeating-linear-gradient(-45deg, var(--card) 0 5px, var(--rule) 5px 7px)";
 
-export function CalendarBlock() {
-  const daily = byDayPaise();
-  const medians = weekdayMediansPaise();
-  // With nothing wired up, striking out all 31 days would assert that we know
+export function CalendarBlock({
+  period,
+  expenses,
+  todayDay,
+}: {
+  period: Period;
+  expenses: Expense[];
+  /** Day of the month it is right now, or null once the period is over. */
+  todayDay: number | null;
+}) {
+  const daily = byDayPaise(expenses, period.daysInMonth);
+  const medians = weekdayMediansPaise(expenses, period);
+  // With nothing recorded, striking out all 31 days would assert that we know
   // no money moved. We do not — we know nothing. Draw a plain grid instead.
   const known = daily.some((paise) => paise > 0);
-  const length = Math.ceil((FIRST_WEEKDAY + DAYS_IN_MONTH) / 7) * 7;
+  const length = Math.ceil((period.firstWeekday + period.daysInMonth) / 7) * 7;
   const cells = Array.from({ length }, (_, i) => {
-    const day = i - FIRST_WEEKDAY + 1;
-    return day >= 1 && day <= DAYS_IN_MONTH ? day : null;
+    const day = i - period.firstWeekday + 1;
+    return day >= 1 && day <= period.daysInMonth ? day : null;
   });
 
   return (
@@ -55,22 +58,30 @@ export function CalendarBlock() {
           }
 
           const paise = daily[day - 1];
-          const quiet = known && paise === 0;
+          // A day that has not happened yet is not a day nothing moved — the
+          // hatch asserts a fact, and there is no fact about tomorrow. But
+          // that cuts one way only: a zero on a future day draws plain, while
+          // a *recorded* amount is a fact the page holds and paints wherever
+          // it sits, or the calendar would disagree with the total and the
+          // spend line over the same rupees.
+          const beyondToday = todayDay !== null && day > todayDay;
+          const painted = paise > 0;
+          const quiet = known && !beyondToday && paise === 0;
           const step = rampStep(paise);
 
           return (
             <div
               key={day}
               title={
-                !known
-                  ? `Day ${day}`
+                painted
+                  ? `Day ${day} — ${formatPaise(paise)}`
                   : quiet
                     ? `Day ${day} — nothing moved`
-                    : `Day ${day} — ${formatPaise(paise)}`
+                    : `Day ${day}`
               }
               className="flex aspect-square flex-col justify-between overflow-hidden p-1 sm:p-1.5"
               style={{
-                background: !known || quiet ? undefined : `var(--ramp-${step})`,
+                background: painted ? `var(--ramp-${step})` : undefined,
                 backgroundImage: quiet ? QUIET_FILL : undefined,
                 color: quiet ? "var(--ink)" : `var(--ramp-on-${step})`,
                 outline: "2px solid var(--rule)",
@@ -92,7 +103,7 @@ export function CalendarBlock() {
                   padding: quiet ? "0.0625rem 0.125rem" : undefined,
                 }}
               >
-                {!known ? "" : quiet ? "NIL" : formatPaiseCompact(paise)}
+                {painted ? formatPaiseCompact(paise) : quiet ? "NIL" : ""}
               </span>
             </div>
           );

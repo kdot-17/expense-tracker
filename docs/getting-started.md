@@ -34,7 +34,9 @@ npm run dev
 ```
 
 The app runs at http://localhost:3000 and redirects to `/login` until you sign in
-with the `AUTH_EMAIL` and `AUTH_PASSWORD` you configured.
+with the `AUTH_EMAIL` and `AUTH_PASSWORD` you configured. Once signed in, **Add
+expense** in the masthead records a row — and remember the database is the live
+Neon instance, so anything you add during development is real data.
 
 ## Scripts
 

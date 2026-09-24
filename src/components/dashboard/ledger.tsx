@@ -1,4 +1,4 @@
-import { EXPENSES } from "@/lib/expenses";
+import { type Expense } from "@/lib/expenses";
 import { formatPaise } from "@/lib/money";
 import { slotOf } from "@/lib/taxonomy";
 
@@ -8,8 +8,17 @@ import { slotOf } from "@/lib/taxonomy";
  * The `max-lg:` floor is not decoration: below `lg` the board is one auto-sized
  * column, so `flex-1` resolves against nothing and the table collapses to its
  * header. At `lg` the row height is the authority and the floor is dropped.
+ *
+ * Rows arrive already in date order — the seam sorts them — so the day-opens
+ * lookback below is a presentation detail, not a sort.
  */
-export function Ledger({ fill = false }: { fill?: boolean }) {
+export function Ledger({
+  expenses,
+  fill = false,
+}: {
+  expenses: Expense[];
+  fill?: boolean;
+}) {
   return (
     <div
       className={`border-2 border-rule bg-card ${fill ? "flex min-h-0 flex-1 flex-col" : ""}`}
@@ -51,7 +60,7 @@ export function Ledger({ fill = false }: { fill?: boolean }) {
             </tr>
           </thead>
           <tbody>
-            {EXPENSES.length === 0 ? (
+            {expenses.length === 0 ? (
               <tr>
                 <td
                   colSpan={4}
@@ -61,9 +70,9 @@ export function Ledger({ fill = false }: { fill?: boolean }) {
                 </td>
               </tr>
             ) : null}
-            {EXPENSES.map((expense, i) => {
+            {expenses.map((expense, i) => {
               // Index-based lookback — no accumulator reassigned during render.
-              const opensDay = i === 0 || EXPENSES[i - 1].day !== expense.day;
+              const opensDay = i === 0 || expenses[i - 1].day !== expense.day;
               const slot = slotOf(expense.vertical);
 
               return (

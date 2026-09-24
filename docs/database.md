@@ -304,4 +304,29 @@ unique indexes, which is what leaves the seed safe to re-apply.
 - **Compute date ranges in `Asia/Kolkata`.** Server code runs in UTC, and IST is
   UTC+5:30, so anything between midnight and 5:29am IST is still the previous day
   in UTC. Deriving "this month" from the server clock puts an expense entered at
-  00:30 IST on the 1st into the previous month.
+  00:30 IST on the 1st into the previous month. `src/lib/period.ts` is where
+  that shift happens, exactly once.
+
+## Reading and writing from the app
+
+The dashboard's one read is `getMonthData()` in `src/lib/expenses-data.ts`
+(`server-only`): it calls `verifySession()`, then issues a single `db.batch()`
+— the period's rows joined to their names, and the previous month's totals
+aggregated in SQL. "Prior month on file" means rows in the previous calendar
+month itself, not merely anything older: history with a gap month between
+would otherwise report a "last month" total of zero, a figure describing a
+month nobody recorded. A batch is one HTTP roundtrip on the neon-http driver
+instead of one per query, and it runs as a single non-interactive
+transaction, so the reads are a consistent snapshot.
+
+Writes are server actions (see [conventions.md](conventions.md)); creating an
+expense is `addExpense` in `src/app/actions.ts`, which resolves the
+(vertical, subtype) names to their id pair and lets the composite FK re-check
+the pairing on insert.
+
+**neon-http has no interactive transactions.** `db.batch()` — a fixed list of
+statements — is the only transactional shape available. A write that needs a
+later statement to depend on an earlier one's result cannot be atomic on this
+driver; keep writes single-statement, or accept and handle the race (the
+composite FK on `expenses` is the backstop that makes the lookup-then-insert
+race a caught error rather than corrupt data).

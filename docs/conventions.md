@@ -47,6 +47,20 @@ GROUP BY vertical_id
 Not by fetching rows and reducing them in JavaScript, which ships every row to
 compute one number per group.
 
+The rule is about rows that should never ship. When a page already fetches a
+period's raw rows — the ledger lists every one — that period's totals derive
+from the rows in hand; re-running `GROUP BY`s over data the page already holds
+would be extra roundtrips to learn nothing new. SQL aggregation is mandatory
+for anything whose rows do *not* ship: the previous month is a
+`SUM ... GROUP BY`, never a row fetch. `getMonthData()` in
+`src/lib/expenses-data.ts` is the shape of it.
+
+Batch same-render reads with `db.batch()`. The neon-http driver is one HTTP
+roundtrip per query, and a batch is one roundtrip for all of them — executed as
+a single non-interactive transaction, so the reads are a consistent snapshot.
+(That is also the only transaction neon-http has: there is no interactive
+`db.transaction()` on this driver.)
+
 Two things to watch:
 
 - **`SUM(integer)` returns `bigint`, which the driver returns as a string.** Cast
